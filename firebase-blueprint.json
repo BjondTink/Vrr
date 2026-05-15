@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "product": {
+      "title": "Product",
+      "description": "Fashion product in the store",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "string" },
+        "image": { "type": "string" },
+        "gallery": { "type": "array", "items": { "type": "string" } },
+        "sizes": { "type": "array", "items": { "type": "string" } },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "details": { "type": "string" },
+        "isFeatured": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "price", "image", "category"]
+    },
+    "category": {
+      "title": "Category",
+      "description": "Product category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["name", "slug"]
+    },
+    "journalPost": {
+      "title": "Journal Post",
+      "description": "Editorial post for the journal",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "content": { "type": "string" }
+      },
+      "required": ["title", "date", "category", "image"]
+    },
+    "siteSettings": {
+      "title": "Site Settings",
+      "description": "Global texts and images for the site",
+      "type": "object",
+      "properties": {
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "heroImage": { "type": "string" },
+        "philosophyQuote": { "type": "string" },
+        "philosophyTag": { "type": "string" },
+        "marqueeText": { "type": "string" },
+        "collectionTitle": { "type": "string" },
+        "collectionSubtitle": { "type": "string" },
+        "collectionDescription": { "type": "string" },
+        "collection1Image": { "type": "string" },
+        "collection2Image": { "type": "string" },
+        "collection3Image": { "type": "string" },
+        "collection4Image": { "type": "string" }
+      }
+    },
+    "order": {
+        "title": "Order",
+        "description": "Customer order",
+        "type": "object",
+        "properties": {
+            "userId": { "type": "string" },
+            "customerEmail": { "type": "string" },
+            "items": { "type": "array" },
+            "total": { "type": "number" },
+            "status": { "type": "string" },
+            "shippingAddress": { "type": "object" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "product",
+      "description": "Store products"
+    },
+    "/categories/{categoryId}": {
+      "schema": "category",
+      "description": "Product categories"
+    },
+    "/journalPosts/{postId}": {
+      "schema": "journalPost",
+      "description": "Journal entries"
+    },
+    "/settings/global": {
+      "schema": "siteSettings",
+      "description": "Global site configurations"
+    },
+    "/orders/{orderId}": {
+      "schema": "order",
+      "description": "Customer orders"
+    }
+  }
+}
