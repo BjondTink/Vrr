@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { handleFirestoreError, OperationType } from './firestoreErrorHandler';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -13,6 +14,13 @@ async function testConnection() {
   } catch (error) {
     if(error instanceof Error && error.message.includes('the client is offline')) {
       console.error("Please check your Firebase configuration.");
+    } else {
+      // Use a try-catch to avoid infinite loop if handleFirestoreError fails (unlikely)
+      try {
+        handleFirestoreError(error, OperationType.GET, 'test/connection');
+      } catch (e) {
+        console.error("Connection test failed:", e);
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { onAuthStateChanged, User, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 
 interface AuthContextType {
@@ -30,15 +30,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
         try {
-          const adminDoc = await getDoc(doc(db, "admins", user.uid));
-          setIsAdmin(adminDoc.exists() || user.email === "Reniqahi2015@gmail.com");
+          const adminDocRef = doc(db, "admins", firebaseUser.uid);
+          const adminDoc = await getDoc(adminDocRef);
+          const isHardcodedAdmin = firebaseUser.email?.toLowerCase() === "reniqahi2015@gmail.com";
+          
+          if (isHardcodedAdmin && !adminDoc.exists()) {
+            // Provision the admin document if it doesn't exist
+            await setDoc(adminDocRef, {
+              email: firebaseUser.email,
+              role: "admin",
+              assignedAt: new Date().toISOString()
+            });
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(adminDoc.exists() || isHardcodedAdmin);
+          }
         } catch (err) {
           console.error("Admin check failed:", err);
-          setIsAdmin(user.email === "Reniqahi2015@gmail.com");
+          const isHardcodedAdmin = firebaseUser.email?.toLowerCase() === "reniqahi2015@gmail.com";
+          setIsAdmin(isHardcodedAdmin);
         }
       } else {
         setIsAdmin(false);

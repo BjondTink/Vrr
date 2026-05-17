@@ -8,7 +8,11 @@ export default function Hero() {
   const [settings, setSettings] = useState({
     heroTitle: "First Signs of Spring",
     heroSubtitle: "Discover the Collection",
-    heroImage: "https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=2670&auto=format&fit=crop"
+    heroImage: "https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=2670&auto=format&fit=crop",
+    collection1Image: "",
+    collection2Image: "",
+    collection3Image: "",
+    collection4Image: ""
   });
 
   useEffect(() => {

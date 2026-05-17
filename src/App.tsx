@@ -40,7 +40,11 @@ function HomePage() {
   const [settings, setSettings] = useState({
     philosophyQuote: "Art is the soul of our studio, fashion is the language we use to speak to the world.",
     philosophyTag: "Our Philosophy",
-    marqueeText: "Vrr — Collection No.04 — Dropping Soon"
+    marqueeText: "Vrr — Collection No.04 — Dropping Soon",
+    collection1Image: "",
+    collection2Image: "",
+    collection3Image: "",
+    collection4Image: ""
   });
 
   useEffect(() => {

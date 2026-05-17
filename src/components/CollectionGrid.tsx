@@ -9,7 +9,11 @@ export default function CollectionGrid() {
   const [settings, setSettings] = useState({
     collectionTitle: "The Seasonal Edit",
     collectionSubtitle: "Curated Pieces",
-    collectionDescription: "Our latest pieces are designed for the transitional moments between seasons. Timeless silhouettes meet modern craftsmanship."
+    collectionDescription: "Our latest pieces are designed for the transitional moments between seasons. Timeless silhouettes meet modern craftsmanship.",
+    collection1Image: "",
+    collection2Image: "",
+    collection3Image: "",
+    collection4Image: ""
   });
 
   useEffect(() => {
@@ -23,25 +27,25 @@ export default function CollectionGrid() {
     {
       title: "Le Matin",
       category: "Essentials",
-      image: (settings as any).collection1Image || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=2670",
+      image: settings.collection1Image || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=2670",
       size: "large",
     },
     {
       title: "L'Heure Bleue",
       category: "Evening Wear",
-      image: (settings as any).collection2Image || "https://images.unsplash.com/photo-1539008835270-3dc9d3160914?auto=format&fit=crop&q=80&w=2574",
+      image: settings.collection2Image || "https://images.unsplash.com/photo-1539008835270-3dc9d3160914?auto=format&fit=crop&q=80&w=2574",
       size: "small",
     },
     {
       title: "Jardin de Mars",
       category: "Accessories",
-      image: (settings as any).collection3Image || "https://images.unsplash.com/photo-1549439602-43ebca2327af?auto=format&fit=crop&q=80&w=2670",
+      image: settings.collection3Image || "https://images.unsplash.com/photo-1549439602-43ebca2327af?auto=format&fit=crop&q=80&w=2670",
       size: "small",
     },
     {
       title: "Primavera",
       category: "New Arrival",
-      image: (settings as any).collection4Image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=2520",
+      image: settings.collection4Image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=2520",
       size: "medium",
     },
   ];
