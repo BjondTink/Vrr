@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { useCart } from "../context/CartContext";
 import { ArrowLeft, Minus, Plus, ShoppingBag, ShieldCheck, Truck, RefreshCw, Image as ImageIcon } from "lucide-react";
+import { flexibleDb } from "../lib/flexibleDatabase";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -18,12 +17,16 @@ export default function ProductDetail() {
   useEffect(() => {
     const fetchProduct = async () => {
       if (!id) return;
-      const docRef = doc(db, "products", id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setProduct({ id: docSnap.id, ...docSnap.data() });
+      try {
+        const prod = await flexibleDb.getDoc("products", id);
+        if (prod) {
+          setProduct(prod);
+        }
+      } catch (err) {
+        console.error("Fetch product failed:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchProduct();
   }, [id]);
@@ -105,7 +108,7 @@ export default function ProductDetail() {
                   className={`aspect-[3/4] bg-studio-black/5 overflow-hidden transition-all border-2 ${activeImage === idx ? 'border-studio-black' : 'border-transparent opacity-60 hover:opacity-100'}`}
                 >
                   {img ? (
-                    <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                    <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-black/5">
                       <ImageIcon size={16} className="text-black/10" />

@@ -25,8 +25,7 @@ import CartDrawer from "./components/CartDrawer";
 import AdminDashboard from "./pages/AdminDashboard";
 
 import { useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "./lib/firebase";
+import { flexibleDb } from "./lib/flexibleDatabase";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -48,8 +47,8 @@ function HomePage() {
   });
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "global"), (snap) => {
-      if (snap.exists()) setSettings(prev => ({ ...prev, ...snap.data() as any }));
+    const unsub = flexibleDb.subscribeToDoc("settings", "global", (data) => {
+      if (data) setSettings(prev => ({ ...prev, ...data }));
     });
     return unsub;
   }, []);

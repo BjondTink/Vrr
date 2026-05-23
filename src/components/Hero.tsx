@@ -1,14 +1,13 @@
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { flexibleDb } from "../lib/flexibleDatabase";
 
 export default function Hero() {
   const [settings, setSettings] = useState({
     heroTitle: "First Signs of Spring",
     heroSubtitle: "Discover the Collection",
-    heroImage: "https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=2670&auto=format&fit=crop",
+    heroImage: "",
     collection1Image: "",
     collection2Image: "",
     collection3Image: "",
@@ -16,18 +15,20 @@ export default function Hero() {
   });
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "global"), (snap) => {
-      if (snap.exists()) setSettings(prev => ({ ...prev, ...snap.data() as any }));
+    const unsub = flexibleDb.subscribeToDoc("settings", "global", (data) => {
+      if (data) setSettings(prev => ({ ...prev, ...data }));
     });
     return unsub;
   }, []);
+
+  const bgImage = settings.heroImage || "https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=2670&auto=format&fit=crop";
 
   return (
     <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
-          src={settings.heroImage}
+          src={bgImage}
           alt="Spring Collection"
           className="w-full h-full object-cover grayscale-[0.2]"
           referrerPolicy="no-referrer"

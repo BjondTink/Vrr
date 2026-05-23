@@ -3,9 +3,7 @@ import { useCart } from "../context/CartContext";
 import { ArrowLeft, CreditCard, Truck, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
-
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { flexibleDb } from "../lib/flexibleDatabase";
 
 export default function Checkout() {
   const { cart, totalPrice, clearCart } = useCart();
@@ -25,14 +23,14 @@ export default function Checkout() {
     setIsProcessing(true);
     
     try {
-      await addDoc(collection(db, "orders"), {
-        userId: "guest", // Could be auth.currentUser.uid if logged in
+      await flexibleDb.createDoc("orders", {
+        userId: "guest", 
         customerEmail: shippingInfo.email,
         items: cart,
         total: totalPrice,
         status: "pending",
         shippingAddress: shippingInfo,
-        createdAt: serverTimestamp()
+        createdAt: new Date().toISOString()
       });
       
       clearCart();
@@ -149,7 +147,7 @@ export default function Checkout() {
           <div className="space-y-6 mb-12">
             {cart.map((item) => (
               <div key={item.id} className="flex gap-4">
-                <img src={item.image} alt={item.name} className="w-16 h-20 object-cover" />
+                <img src={item.image} alt={item.name} className="w-16 h-20 object-cover" referrerPolicy="no-referrer" />
                 <div className="flex-1">
                   <h3 className="font-serif text-sm">{item.name}</h3>
                   <p className="text-[9px] uppercase tracking-widest text-studio-black/40 mt-1">Qty: {item.quantity}</p>

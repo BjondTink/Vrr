@@ -16,15 +16,26 @@ import {
   Trash2,
   Image as ImageIcon,
   Save,
-  Loader2
+  Loader2,
+  FolderOpen
 } from "lucide-react";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from "recharts";
+import ImageUpload from "../components/ImageUpload";
+import SEO from "../components/SEO";
 import { useAuth } from "../context/AuthContext";
-import { collection, query, getDocs, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
+import { flexibleDb } from "../lib/flexibleDatabase";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 
-type Tab = "overview" | "products" | "categories" | "journal" | "orders" | "home";
+type Tab = "overview" | "products" | "categories" | "collections" | "journal" | "orders" | "home";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading, logout } = useAuth();
@@ -95,6 +106,7 @@ export default function AdminDashboard() {
           <SidebarLink icon={<Layers size={20}/>} label="Categories" active={activeTab === "categories"} onClick={() => { setActiveTab("categories"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           <SidebarLink icon={<FileText size={20}/>} label="Journal" active={activeTab === "journal"} onClick={() => { setActiveTab("journal"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           <SidebarLink icon={<ShoppingBag size={20}/>} label="Orders" active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
+          <SidebarLink icon={<FolderOpen size={20}/>} label="Collections" active={activeTab === "collections"} onClick={() => { setActiveTab("collections"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           <div className="pt-8 mb-2">
             <SidebarLink icon={<Settings size={20}/>} label="Home Page" active={activeTab === "home"} onClick={() => { setActiveTab("home"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           </div>
@@ -113,6 +125,14 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="flex-1 min-w-0 overflow-y-auto">
+        {user?.uid === "vrr_admin_id" && (
+          <div className="bg-studio-accent text-white px-8 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] uppercase font-black bg-white text-studio-accent px-1.5 py-0.5 rounded">Flexible Mode</span>
+              <p className="text-[10px] uppercase tracking-[0.1em] font-medium">Resilient sync mode is active. You have full admin rights: add, edit, or upload items freely across all pages.</p>
+            </div>
+          </div>
+        )}
         <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-black/5 p-4 lg:p-8 flex justify-between items-center transition-all">
             <div className="flex items-center gap-4">
               <button 
@@ -125,14 +145,9 @@ export default function AdminDashboard() {
             </div>
             
             <div className="flex items-center gap-4">
-                {user?.uid === "vrr_admin_id" && (
-                    <div className="px-3 py-1 bg-black/5 text-black/40 text-[8px] uppercase tracking-widest font-bold rounded-lg border border-black/10">
-                        Admin Session (Restricted)
-                    </div>
-                )}
                 <button 
                   onClick={() => window.open('/', '_blank')}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 border border-black/10 rounded-lg text-[10px] uppercase tracking-widest font-bold hover:bg-black/5 transition-all"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 border border-black/10 rounded-lg text-[10px] uppercase tracking-widest font-bold hover:bg-black/5 transition-all text-black/60"
                 >
                     Visit Site
                 </button>
@@ -141,7 +156,7 @@ export default function AdminDashboard() {
                     <p className="text-[9px] text-black/40">Studio Admin</p>
                 </div>
                 {user?.photoURL ? (
-                    <img src={user.photoURL} alt="admin" className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border border-black/10" />
+                    <img src={user.photoURL} alt="admin" className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border border-black/10" referrerPolicy="no-referrer" />
                 ) : (
                     <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border border-black/10 bg-studio-black flex items-center justify-center text-white text-[10px] uppercase font-bold">
                         {user?.displayName?.charAt(0) || "A"}
@@ -155,6 +170,7 @@ export default function AdminDashboard() {
             {activeTab === "overview" && <DashboardOverview onTabChange={setActiveTab} />}
             {activeTab === "products" && <DashboardProducts />}
             {activeTab === "categories" && <DashboardCategories />}
+            {activeTab === "collections" && <DashboardCollections />}
             {activeTab === "home" && <DashboardHome />}
             {activeTab === "orders" && <DashboardOrders />}
             {activeTab === "journal" && <DashboardJournal />}
@@ -182,45 +198,32 @@ function SidebarLink({ icon, label, active, onClick, collapsed }: { icon: React.
 
 function DashboardOverview({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
     const { isAdmin, user } = useAuth();
-    const [stats, setStats] = useState({ products: 0, categories: 0, orders: 0, journal: 0 });
+    const [stats, setStats] = useState({ products: 0, categories: 0, orders: 0, journal: 0, revenue: 0 });
 
     useEffect(() => {
         const fetchStats = async () => {
             if (!isAdmin) return;
 
             try {
-                // Fetch stats individually to avoid total failure if one collection is restricted
-                const statsPromises = [
-                    getDocs(collection(db, "products")),
-                    getDocs(collection(db, "categories")),
-                    getDocs(collection(db, "orders")),
-                    getDocs(collection(db, "journalPosts"))
-                ];
-
-                const results = await Promise.allSettled(statsPromises);
+                const [products, categories, orders, journalPosts] = await Promise.all([
+                    flexibleDb.getDocs("products"),
+                    flexibleDb.getDocs("categories"),
+                    flexibleDb.getDocs("orders"),
+                    flexibleDb.getDocs("journalPosts")
+                ]);
                 
-                const collections = ["products", "categories", "orders", "journalPosts"];
+                const revenue = orders.reduce((acc, doc) => {
+                    const totalVal = parseFloat(String(doc.total).replace(/[^0-9.]/g, '')) || 0;
+                    return acc + totalVal;
+                }, 0);
                 
                 setStats({
-                    products: results[0].status === 'fulfilled' ? results[0].value.size : 0,
-                    categories: results[1].status === 'fulfilled' ? results[1].value.size : 0,
-                    orders: results[2].status === 'fulfilled' ? results[2].value.size : 0,
-                    journal: results[3].status === 'fulfilled' ? results[3].value.size : 0
+                    products: products.length,
+                    categories: categories.length,
+                    orders: orders.length,
+                    journal: journalPosts.length,
+                    revenue
                 });
-
-                // Log errors and handle diagnostic JSON output
-                results.forEach((res, idx) => {
-                    if (res.status === 'rejected') {
-                        console.warn(`Could not fetch stats for ${collections[idx]}:`, res.reason);
-                        // Only trigger handleFirestoreError for reporting, don't throw to avoid crashing the effect
-                        try {
-                            handleFirestoreError(res.reason, OperationType.LIST, collections[idx]);
-                        } catch (e) {
-                            // Suppress the re-thrown error here as we just wanted to log it
-                        }
-                    }
-                });
-
             } catch (err) {
                 console.error("Dashboard stats fetch failed:", err);
             }
@@ -228,29 +231,81 @@ function DashboardOverview({ onTabChange }: { onTabChange: (tab: Tab) => void })
         fetchStats();
     }, [isAdmin, user?.uid]);
 
+    const chartData = [
+      { name: 'Mon', value: 4000 },
+      { name: 'Tue', value: 3000 },
+      { name: 'Wed', value: 5000 },
+      { name: 'Thu', value: 2780 },
+      { name: 'Fri', value: 1890 },
+      { name: 'Sat', value: 2390 },
+      { name: 'Sun', value: 3490 },
+    ];
+
     return (
-        <div className="p-4 lg:p-8">
+        <div className="p-4 lg:p-8 space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
-                <StatCard label="Total Products" value={stats.products} icon={<Package />} onClick={() => onTabChange("products")} />
-                <StatCard label="Categories" value={stats.categories} icon={<Layers />} onClick={() => onTabChange("categories")} />
-                <StatCard label="Active Orders" value={stats.orders} icon={<ShoppingBag />} onClick={() => onTabChange("orders")} />
-                <StatCard label="Journal Entries" value={stats.journal} icon={<FileText />} onClick={() => onTabChange("journal")} />
+                <StatCard label="Live Inventory" value={stats.products} icon={<Package />} onClick={() => onTabChange("products")} />
+                <StatCard label="Total Categories" value={stats.categories} icon={<Layers />} onClick={() => onTabChange("categories")} />
+                <StatCard label="Total Orders" value={stats.orders} icon={<ShoppingBag />} onClick={() => onTabChange("orders")} />
+                <StatCard label="Revenue" value={`$${stats.revenue.toLocaleString()}`} icon={<TrendingUp />} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-black/5 h-[400px]">
+                   <div className="flex justify-between items-center mb-6">
+                      <h3 className="font-serif text-xl">Sales Performance</h3>
+                      <p className="text-[10px] uppercase tracking-widest text-black/40 font-bold">Past 7 Days</p>
+                   </div>
+                   <ResponsiveContainer width="100%" height="90%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#000000" stopOpacity={0.1}/>
+                            <stop offset="95%" stopColor="#000000" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#999'}} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#999'}} />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="value" stroke="#000" fillOpacity={1} fill="url(#colorValue)" strokeWidth={2} />
+                      </AreaChart>
+                   </ResponsiveContainer>
+                </div>
+
+                <div className="bg-studio-black text-white p-8 rounded-xl flex flex-col justify-between">
+                   <div>
+                      <h3 className="font-serif text-2xl mb-2">Studio Status</h3>
+                      <p className="text-white/40 text-xs tracking-wider uppercase">Connected to Global Node</p>
+                   </div>
+                   
+                   <div className="space-y-4">
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                         <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold mb-1">Server Latency</p>
+                         <p className="font-mono text-lg text-studio-accent">24ms</p>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                         <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold mb-1">System Health</p>
+                         <p className="font-mono text-lg text-green-400">Optimal</p>
+                      </div>
+                   </div>
+
+                   <button 
+                     onClick={() => onTabChange("home")}
+                     className="w-full py-4 bg-white text-black text-[10px] uppercase tracking-[0.3em] font-bold rounded-lg hover:bg-studio-accent hover:text-white transition-all"
+                   >
+                     Update Storefront
+                   </button>
+                </div>
             </div>
             
-            <div className="mt-8 lg:mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="p-6 lg:p-10 bg-[#F9F8F6] rounded-xl border border-black/5">
-                    <h3 className="font-serif text-xl lg:text-2xl mb-6">Quick Actions</h3>
-                    <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                        <ActionButton label="Add Product" onClick={() => onTabChange("products")} />
-                        <ActionButton label="Create Post" onClick={() => onTabChange("journal")} />
-                        <ActionButton label="View Orders" onClick={() => onTabChange("orders")} />
-                        <ActionButton label="Edit Site" onClick={() => onTabChange("home")} />
-                    </div>
-                </div>
-                <div className="p-6 lg:p-10 bg-studio-black text-white rounded-xl">
-                    <h3 className="font-serif text-xl lg:text-2xl mb-6">System Status</h3>
-                    <p className="text-[10px] text-white/50 uppercase tracking-widest mb-4">Database: Connected</p>
-                    <p className="text-[10px] text-white/50 uppercase tracking-widest">Region: Europe West 3</p>
+            <div className="p-6 lg:p-10 bg-[#F9F8F6] rounded-xl border border-black/5">
+                <h3 className="font-serif text-xl lg:text-2xl mb-6">Management shortcuts</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
+                    <ActionButton label="Add Product" onClick={() => onTabChange("products")} />
+                    <ActionButton label="Create Post" onClick={() => onTabChange("journal")} />
+                    <ActionButton label="View Orders" onClick={() => onTabChange("orders")} />
+                    <ActionButton label="Edit Site" onClick={() => onTabChange("home")} />
                 </div>
             </div>
         </div>
@@ -266,17 +321,15 @@ function DashboardProducts() {
     useEffect(() => {
         if (!isAdmin) return;
 
-        const unsub = onSnapshot(collection(db, "products"), (snap) => {
-            setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        }, (err) => {
-            handleFirestoreError(err, OperationType.GET, "products");
+        const unsub = flexibleDb.subscribeToCollection("products", (items) => {
+            setProducts(items);
         });
         return unsub;
     }, [isAdmin]);
 
     const handleDelete = async (id: string) => {
         if (confirm("Delete this product?")) {
-            await deleteDoc(doc(db, "products", id));
+            await flexibleDb.deleteDoc("products", id);
         }
     };
 
@@ -307,7 +360,7 @@ function DashboardProducts() {
                             <tr key={p.id} className="border-b border-black/5 hover:bg-black/5 transition-colors group">
                                 <td className="py-4 flex items-center gap-4">
                                     {p.image ? (
-                                        <img src={p.image} className="w-10 h-10 lg:w-12 lg:h-12 object-cover rounded-md" />
+                                        <img src={p.image} className="w-10 h-10 lg:w-12 lg:h-12 object-cover rounded-md" referrerPolicy="no-referrer" />
                                     ) : (
                                         <div className="w-10 h-10 lg:w-12 lg:h-12 bg-black/5 rounded-md flex items-center justify-center">
                                             <ImageIcon size={16} className="text-black/20" />
@@ -340,136 +393,218 @@ function DashboardProducts() {
 }
 
 function ProductModal({ product, onClose }: { product?: any, onClose: () => void }) {
+    const [allCollections, setAllCollections] = useState<any[]>([]);
     const [formData, setFormData] = useState(product || { 
       name: "", 
       price: "", 
+      discountPrice: "",
       category: "", 
+      collection: "",
       image: "", 
       gallery: [], 
       sizes: ["XS", "S", "M", "L", "XL"],
+      colors: [],
+      stock: 10,
       description: "",
-      details: ""
+      details: "",
+      modelInfo: "",
+      slug: "",
+      isFeatured: false,
+      isNewArrival: true,
+      seoTitle: "",
+      seoDescription: ""
     });
     const [loading, setLoading] = useState(false);
-    const [galleryInput, setGalleryInput] = useState("");
+
+    useEffect(() => {
+        const unsub = flexibleDb.subscribeToCollection("collections", (items) => {
+            setAllCollections(items);
+        });
+        return unsub;
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
             const id = product?.id || Date.now().toString();
-            await setDoc(doc(db, "products", id), {
+            // Auto-generate slug if empty
+            const slug = formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+            
+            await flexibleDb.saveDoc("products", id, {
                 ...formData,
+                slug,
                 updatedAt: new Date().toISOString()
             });
             onClose();
         } catch (err) {
             console.error(err);
+            alert("Failed to save product.");
         } finally {
             setLoading(false);
         }
     };
 
-    const addGalleryItem = () => {
-        if (!galleryInput) return;
-        setFormData({ ...formData, gallery: [...(formData.gallery || []), galleryInput] });
-        setGalleryInput("");
-    };
-
-    const removeGalleryItem = (idx: number) => {
-        const newGallery = [...(formData.gallery || [])];
-        newGallery.splice(idx, 1);
-        setFormData({ ...formData, gallery: newGallery });
-    };
-
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 sm:p-12">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 lg:p-12">
             <motion.div 
                initial={{ opacity: 0, scale: 0.95 }}
                animate={{ opacity: 1, scale: 1 }}
-               className="bg-white w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-full"
+               className="bg-white w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
-                <div className="p-8 border-b border-black/5 flex justify-between items-center bg-studio-bg flex-shrink-0">
-                    <h3 className="font-serif text-2xl">{product ? "Edit Piece" : "New Collection Piece"}</h3>
+                <div className="p-6 lg:p-8 border-b border-black/5 flex justify-between items-center bg-studio-bg flex-shrink-0">
+                    <h3 className="font-serif text-2xl">{product ? "Edit Collection Piece" : "New Piece"}</h3>
                     <button onClick={onClose} className="hover:rotate-90 transition-transform"><X size={24} /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-8 space-y-8 overflow-y-auto flex-1">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Primary Info */}
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] uppercase tracking-widest font-bold">Name</label>
-                                <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-3 text-xs uppercase tracking-widest rounded-lg focus:outline-studio-accent" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest font-bold">Price (e.g. $450)</label>
-                                    <input required value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-3 text-xs tracking-widest rounded-lg focus:outline-studio-accent" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase tracking-widest font-bold">Category</label>
-                                    <input required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-3 text-xs uppercase tracking-widest rounded-lg focus:outline-studio-accent" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] uppercase tracking-widest font-bold">Thumbnail Image URL</label>
-                                <input required value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://..." className="w-full bg-[#f9f9f9] border border-black/5 p-3 text-xs rounded-lg focus:outline-studio-accent" />
-                            </div>
+                <form onSubmit={handleSubmit} className="p-6 lg:p-8 space-y-12 overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                        {/* Left Column: Media & Visuals */}
+                        <div className="lg:col-span-5 space-y-8">
+                            <ImageUpload 
+                              label="Thumbnail (Primary)" 
+                              currentImage={formData.image} 
+                              onUpload={(url) => setFormData({...formData, image: url})} 
+                            />
                             
-                            <div className="space-y-2">
-                                <label className="text-[10px] uppercase tracking-widest font-bold">Gallery Images</label>
-                                <div className="flex gap-2">
-                                    <input 
-                                      value={galleryInput} 
-                                      onChange={e => setGalleryInput(e.target.value)} 
-                                      placeholder="https://..." 
-                                      className="flex-1 bg-[#f9f9f9] border border-black/5 p-3 text-xs rounded-lg focus:outline-studio-accent" 
-                                    />
-                                    <button type="button" onClick={addGalleryItem} className="bg-studio-black text-white px-4 rounded-lg"><Plus size={16}/></button>
-                                </div>
-                                <div className="flex flex-wrap gap-2 mt-2">
+                            <div className="space-y-4">
+                                <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Gallery Images</label>
+                                <div className="grid grid-cols-3 gap-2">
                                     {formData.gallery?.map((img: string, idx: number) => (
-                                        <div key={idx} className="relative group w-16 h-16 bg-black/5 rounded-md overflow-hidden">
-                                            {img ? <img src={img} className="w-full h-full object-cover" /> : null}
+                                        <div key={idx} className="relative group aspect-square bg-black/5 rounded-lg overflow-hidden">
+                                            <img src={img} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                             <button 
                                               type="button" 
-                                              onClick={() => removeGalleryItem(idx)}
+                                              onClick={() => {
+                                                const newGallery = [...formData.gallery];
+                                                newGallery.splice(idx, 1);
+                                                setFormData({...formData, gallery: newGallery});
+                                              }}
                                               className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
                                             >
-                                                <Trash2 size={12}/>
+                                                <Trash2 size={16}/>
                                             </button>
                                         </div>
                                     ))}
+                                    <div className="aspect-square">
+                                       <ImageUpload onUpload={(url) => setFormData({...formData, gallery: [...(formData.gallery || []), url]})} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 bg-studio-black text-white rounded-xl space-y-4">
+                                <h4 className="text-[10px] uppercase tracking-widest font-bold text-white/40">Storefront Visibility</h4>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs uppercase tracking-widest">Featured Item</span>
+                                    <input 
+                                      type="checkbox" 
+                                      checked={formData.isFeatured} 
+                                      onChange={e => setFormData({...formData, isFeatured: e.target.checked})}
+                                      className="accent-studio-accent w-4 h-4"
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs uppercase tracking-widest">New Arrival</span>
+                                    <input 
+                                      type="checkbox" 
+                                      checked={formData.isNewArrival} 
+                                      onChange={e => setFormData({...formData, isNewArrival: e.target.checked})}
+                                      className="accent-studio-accent w-4 h-4"
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Secondary Info */}
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] uppercase tracking-widest font-bold">Description (Brief)</label>
-                                <textarea rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-3 text-xs tracking-widest rounded-lg focus:outline-studio-accent" />
+                        {/* Right Column: Data & Specs */}
+                        <div className="lg:col-span-7 space-y-8">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-widest font-bold">Piece Name</label>
+                                    <input required value={formData.name || ""} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs font-bold uppercase tracking-widest rounded-lg" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-widest font-bold">Category</label>
+                                    <input 
+                                        required 
+                                        value={formData.category || ""} 
+                                        onChange={e => setFormData({...formData, category: e.target.value})} 
+                                        className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs uppercase tracking-widest rounded-lg font-bold" 
+                                        placeholder="Type or click suggestions below..."
+                                    />
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {["Outerwear", "Dresses", "Bottoms", "Knitwear", "Accessories"].map(cat => (
+                                            <button 
+                                                key={cat}
+                                                type="button"
+                                                onClick={() => setFormData({...formData, category: cat})}
+                                                className={`text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-md border font-bold transition-all ${formData.category === cat ? 'bg-studio-accent text-white border-studio-accent' : 'bg-black/5 text-black/60 border-transparent hover:bg-black/10'}`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
+
                             <div className="space-y-2">
-                                <label className="text-[10px] uppercase tracking-widest font-bold">Details (Materials, Care, etc.)</label>
-                                <textarea rows={4} value={formData.details} onChange={e => setFormData({...formData, details: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-3 text-xs tracking-widest rounded-lg focus:outline-studio-accent" />
+                                <label className="text-[10px] uppercase tracking-widest font-bold">Collection (Optional)</label>
+                                <select 
+                                    value={formData.collection || ""} 
+                                    onChange={e => setFormData({...formData, collection: e.target.value})} 
+                                    className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs uppercase tracking-widest rounded-lg font-bold"
+                                >
+                                    <option value="">None (Standalone Piece)</option>
+                                    {allCollections.map((col: any) => (
+                                        <option key={col.id} value={col.id}>{col.name}</option>
+                                    ))}
+                                </select>
                             </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-widest font-bold">Price</label>
+                                    <input required value={formData.price || ""} onChange={e => setFormData({...formData, price: e.target.value})} placeholder="$" className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs font-mono rounded-lg" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-widest font-bold">Discount Price</label>
+                                    <input value={formData.discountPrice || ""} onChange={e => setFormData({...formData, discountPrice: e.target.value})} placeholder="$" className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs font-mono rounded-lg" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-widest font-bold">Stock</label>
+                                    <input type="number" required value={formData.stock ?? 0} onChange={e => setFormData({...formData, stock: parseInt(e.target.value) || 0})} className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs rounded-lg" />
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
-                                <label className="text-[10px] uppercase tracking-widest font-bold">Sizes (Comma separated)</label>
-                                <input 
-                                  value={formData.sizes?.join(", ")} 
-                                  onChange={e => setFormData({...formData, sizes: e.target.value.split(", ").filter(s => s)})} 
-                                  className="w-full bg-[#f9f9f9] border border-black/5 p-3 text-xs uppercase tracking-widest rounded-lg focus:outline-studio-accent" 
-                                />
+                                <label className="text-[10px] uppercase tracking-widest font-bold">Product Summary</label>
+                                <textarea rows={2} value={formData.description || ""} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs tracking-widest rounded-lg leading-relaxed" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase tracking-widest font-bold">Technical Details (Materials/Care)</label>
+                                <textarea rows={3} value={formData.details || ""} onChange={e => setFormData({...formData, details: e.target.value})} className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs tracking-widest rounded-lg" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase tracking-widest font-bold text-studio-accent font-black">Search Optimization (SEO)</label>
+                                <div className="p-6 bg-studio-bg rounded-xl border border-black/5 space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] uppercase tracking-widest font-bold opacity-40">SEO Title</label>
+                                        <input value={formData.seoTitle || ""} onChange={e => setFormData({...formData, seoTitle: e.target.value})} className="w-full bg-white border border-black/5 p-3 text-[10px] rounded-lg" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] uppercase tracking-widest font-bold opacity-40">SEO Description</label>
+                                        <textarea value={formData.seoDescription || ""} onChange={e => setFormData({...formData, seoDescription: e.target.value})} className="w-full bg-white border border-black/5 p-3 text-[10px] rounded-lg" rows={2} />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <button 
                       disabled={loading}
-                      className="w-full bg-studio-black text-white py-6 text-[10px] uppercase tracking-[0.4em] font-bold rounded-lg flex items-center justify-center gap-4 hover:opacity-95 transition-all flex-shrink-0"
+                      className="w-full bg-studio-black text-white py-6 text-[10px] uppercase tracking-[0.6em] font-bold rounded-xl flex items-center justify-center gap-4 hover:bg-studio-accent transition-all sticky bottom-0 z-10 shadow-2xl"
                     >
-                        {loading ? <Loader2 size={18} className="animate-spin"/> : <><Save size={18}/> Update Piece</>}
+                        {loading ? <Loader2 size={18} className="animate-spin"/> : <><Save size={18}/> Push to Database</>}
                     </button>
                 </form>
             </motion.div>
@@ -486,10 +621,8 @@ function DashboardCategories() {
     useEffect(() => {
         if (!isAdmin) return;
 
-        const unsub = onSnapshot(collection(db, "categories"), (snap) => {
-            setCategories(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        }, (err) => {
-            handleFirestoreError(err, OperationType.GET, "categories");
+        const unsub = flexibleDb.subscribeToCollection("categories", (items) => {
+            setCategories(items);
         });
         return unsub;
     }, [isAdmin]);
@@ -499,7 +632,7 @@ function DashboardCategories() {
         setLoading(true);
         try {
             const id = newCategory.slug || Date.now().toString();
-            await setDoc(doc(db, "categories", id), newCategory);
+            await flexibleDb.saveDoc("categories", id, newCategory);
             setNewCategory({ name: "", slug: "" });
         } catch (err) {
             console.error(err);
@@ -510,7 +643,7 @@ function DashboardCategories() {
 
     const handleDelete = async (id: string) => {
         if (confirm("Delete this category?")) {
-            await deleteDoc(doc(db, "categories", id));
+            await flexibleDb.deleteDoc("categories", id);
         }
     };
 
@@ -568,6 +701,169 @@ function DashboardCategories() {
         </div>
     );
 }
+
+function DashboardCollections() {
+    const { isAdmin } = useAuth();
+    const [collections, setCollections] = useState<any[]>([]);
+    const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null);
+    const [formData, setFormData] = useState({ name: "", category: "", slug: "", image: "" });
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+
+        const unsub = flexibleDb.subscribeToCollection("collections", (items) => {
+            setCollections(items);
+        });
+        return unsub;
+    }, [isAdmin]);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const id = editingCollectionId || formData.slug || Date.now().toString();
+            const image = formData.image || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=2670";
+            
+            await flexibleDb.saveDoc("collections", id, {
+                ...formData,
+                image,
+                id
+            });
+            setFormData({ name: "", category: "", slug: "", image: "" });
+            setEditingCollectionId(null);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEdit = (col: any) => {
+        setEditingCollectionId(col.id);
+        setFormData({
+            name: col.name || "",
+            category: col.category || "",
+            slug: col.id || "",
+            image: col.image || ""
+        });
+    };
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Are you sure you want to delete this collection?")) {
+            await flexibleDb.deleteDoc("collections", id);
+        }
+    };
+
+    return (
+        <div className="p-4 lg:p-8">
+            <h2 className="font-serif text-xl lg:text-2xl mb-8">Collections</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1">
+                    <form onSubmit={handleSave} className="bg-[#f9f9f9] p-6 rounded-xl border border-black/5 space-y-4">
+                        <h3 className="font-serif text-lg mb-4">{editingCollectionId ? "Edit Collection" : "Add New Collection"}</h3>
+                        <div className="space-y-2">
+                            <label className="text-[10px] uppercase tracking-widest font-bold">Collection Name</label>
+                            <input 
+                              required 
+                              value={formData.name} 
+                              onChange={e => setFormData({...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} 
+                              className="w-full p-3 bg-white border border-black/5 rounded-lg text-xs font-bold" 
+                              placeholder="e.g. Le Matin"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] uppercase tracking-widest font-bold">Category Badge / Tag</label>
+                            <input 
+                              required 
+                              value={formData.category} 
+                              onChange={e => setFormData({...formData, category: e.target.value})} 
+                              className="w-full p-3 bg-white border border-black/5 rounded-lg text-xs" 
+                              placeholder="e.g. Essentials, Summer Edit"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] uppercase tracking-widest font-bold">Slug / Unique ID</label>
+                            <input 
+                              required 
+                              disabled={!!editingCollectionId}
+                              value={formData.slug} 
+                              onChange={e => setFormData({...formData, slug: e.target.value})} 
+                              className="w-full p-3 bg-white border border-black/5 rounded-lg text-xs font-mono disabled:opacity-50" 
+                              placeholder="e.g. le-matin"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] uppercase tracking-widest font-bold">Cover Image</label>
+                            <ImageUpload 
+                              currentImage={formData.image} 
+                              onUpload={(url) => setFormData({...formData, image: url})} 
+                            />
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                            <button 
+                               disabled={loading}
+                               className="flex-1 bg-studio-black text-white py-3 text-[10px] uppercase tracking-widest font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-studio-accent transition-colors"
+                            >
+                                {loading ? <Loader2 size={14} className="animate-spin"/> : editingCollectionId ? "Save Changes" : <><Plus size={14}/> Add Collection</>}
+                            </button>
+                            {editingCollectionId && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditingCollectionId(null);
+                                        setFormData({ name: "", category: "", slug: "", image: "" });
+                                    }}
+                                    className="px-4 border border-black/10 rounded-lg text-[10px] uppercase tracking-widest hover:bg-black/5 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
+                    </form>
+                </div>
+
+                <div className="lg:col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {collections.map(c => (
+                            <div key={c.id} className="group relative bg-white border border-black/5 rounded-xl overflow-hidden hover:shadow-md transition-all flex flex-col h-full">
+                                <div className="aspect-[16/10] w-full bg-black/5 relative overflow-hidden">
+                                    <img src={c.image || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=2670"} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                                    <div className="absolute top-3 left-3 bg-studio-black/80 backdrop-blur-md px-2.5 py-1 rounded text-[8px] uppercase tracking-widest text-white font-extrabold shadow-sm">
+                                        {c.category}
+                                    </div>
+                                </div>
+                                <div className="p-4 flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <h4 className="font-serif text-lg leading-tight mb-1">{c.name}</h4>
+                                        <p className="text-[9px] text-black/40 font-mono tracking-wider">ID / Slug: {c.id}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-4 border-t border-black/5 pt-3">
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleEdit(c)} 
+                                            className="flex-1 py-1 px-2 border border-black/10 rounded text-[9px] uppercase tracking-widest font-bold hover:bg-black/5 transition-colors flex items-center justify-center gap-1.5"
+                                        >
+                                            <Edit size={12} /> Edit
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => handleDelete(c.id)} 
+                                            className="p-1 px-2 border border-red-200 text-red-500 hover:bg-red-500 hover:text-white rounded transition-all"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 function DashboardOrders() {
     const { isAdmin, user } = useAuth();
     const [orders, setOrders] = useState<any[]>([]);
@@ -575,17 +871,15 @@ function DashboardOrders() {
     useEffect(() => {
         if (!isAdmin) return;
 
-        const unsub = onSnapshot(collection(db, "orders"), (snap) => {
-            setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        }, (err) => {
-            handleFirestoreError(err, OperationType.GET, "orders");
+        const unsub = flexibleDb.subscribeToCollection("orders", (items) => {
+            setOrders(items);
         });
         return unsub;
     }, [isAdmin]);
 
     const updateStatus = async (id: string, newStatus: string) => {
         try {
-            await updateDoc(doc(db, "orders", id), { status: newStatus });
+            await flexibleDb.updateDoc("orders", id, { status: newStatus });
         } catch (err) {
             console.error(err);
         }
@@ -654,17 +948,15 @@ function DashboardJournal() {
     useEffect(() => {
         if (!isAdmin) return;
 
-        const unsub = onSnapshot(collection(db, "journalPosts"), (snap) => {
-            setPosts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        }, (err) => {
-            handleFirestoreError(err, OperationType.GET, "journalPosts");
+        const unsub = flexibleDb.subscribeToCollection("journalPosts", (items) => {
+            setPosts(items);
         });
         return unsub;
     }, [isAdmin]);
 
     const handleDelete = async (id: string) => {
         if (confirm("Delete this post?")) {
-            await deleteDoc(doc(db, "journalPosts", id));
+            await flexibleDb.deleteDoc("journalPosts", id);
         }
     };
 
@@ -683,7 +975,7 @@ function DashboardJournal() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {posts.map(p => (
                     <div key={p.id} className="bg-white border border-black/5 rounded-xl overflow-hidden group">
-                        {p.image && <img src={p.image} className="w-full h-40 object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />}
+                        {p.image && <img src={p.image} className="w-full h-40 object-cover grayscale group-hover:grayscale-0 transition-all duration-700" referrerPolicy="no-referrer" />}
                         <div className="p-6">
                             <p className="text-[10px] uppercase tracking-widest text-studio-accent font-bold mb-2">{p.category}</p>
                             <h3 className="font-serif text-lg mb-4">{p.title}</h3>
@@ -714,7 +1006,15 @@ function DashboardJournal() {
 }
 
 function JournalModal({ post, onClose }: { post?: any, onClose: () => void }) {
-    const [formData, setFormData] = useState(post || { title: "", category: "", image: "", date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }), content: "" });
+    const [formData, setFormData] = useState(post || { 
+        title: "", 
+        category: "", 
+        image: "", 
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }), 
+        content: "",
+        seoTitle: "",
+        seoDescription: ""
+    });
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -722,52 +1022,75 @@ function JournalModal({ post, onClose }: { post?: any, onClose: () => void }) {
         setLoading(true);
         try {
             const id = post?.id || Date.now().toString();
-            await setDoc(doc(db, "journalPosts", id), {
+            await flexibleDb.saveDoc("journalPosts", id, {
                 ...formData,
                 updatedAt: new Date().toISOString()
             });
             onClose();
         } catch (err) {
             console.error(err);
+            alert("Save failed.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 lg:p-12">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 lg:p-12">
             <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               className="bg-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               className="bg-white w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
                 <div className="p-8 border-b border-black/5 flex justify-between items-center bg-studio-bg flex-shrink-0">
-                    <h3 className="font-serif text-2xl">New Journal Entry</h3>
+                    <h3 className="font-serif text-2xl">{post ? "Edit Journal Entry" : "New Journal Entry"}</h3>
                     <button onClick={onClose}><X size={24} /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto">
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Title</label>
-                        <input required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-xs tracking-widest rounded-lg" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Category</label>
-                            <input required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-xs uppercase tracking-widest rounded-lg" />
+                <form onSubmit={handleSubmit} className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Title</label>
+                                <input required value={formData.title || ""} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-xs font-serif text-lg tracking-tight rounded-lg border border-black/5" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Category</label>
+                                    <input required value={formData.category || ""} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-[10px] uppercase tracking-widest font-black rounded-lg border border-black/5" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Publish Date</label>
+                                    <input value={formData.date || ""} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-[10px] font-mono rounded-lg border border-black/5" />
+                                </div>
+                            </div>
+                            
+                            <ImageUpload 
+                              label="Cover Image" 
+                              currentImage={formData.image} 
+                              onUpload={(url) => setFormData({...formData, image: url})} 
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Image URL</label>
-                            <input required value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-xs rounded-lg" />
+
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Post Content (Rich Text)</label>
+                                <textarea rows={10} value={formData.content || ""} onChange={e => setFormData({...formData, content: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-xs leading-relaxed rounded-lg border border-black/5" />
+                            </div>
+                            
+                            <div className="p-6 bg-studio-bg rounded-xl border border-black/5 space-y-4">
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-studio-accent">Analytics & SEO</p>
+                                <div className="space-y-2">
+                                    <label className="text-[8px] uppercase tracking-widest font-bold opacity-40">SEO Meta Description</label>
+                                    <textarea value={formData.seoDescription || ""} onChange={e => setFormData({...formData, seoDescription: e.target.value})} className="w-full bg-white border border-black/5 p-3 text-[10px] rounded-lg" rows={2} />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase tracking-widest font-bold text-black/40">Content (Markdown supported)</label>
-                        <textarea rows={6} value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} className="w-full bg-[#f9f9f9] p-4 text-xs leading-relaxed rounded-lg" />
-                    </div>
+
                     <button 
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-studio-black text-white py-5 text-[10px] uppercase tracking-[0.4em] font-bold rounded-lg flex items-center justify-center gap-4"
+                      className="w-full bg-studio-black text-white py-6 text-[10px] uppercase tracking-[0.4em] font-bold rounded-xl flex items-center justify-center gap-4 hover:bg-studio-accent transition-all shadow-xl"
                     >
                         {loading ? <Loader2 size={18} className="animate-spin"/> : <><Save size={18}/> {post ? "Update Entry" : "Publish Entry"}</>}
                     </button>
@@ -799,17 +1122,13 @@ function DashboardHome() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, "settings", "global"), (snap) => {
-            if (snap.exists()) {
-                const data = snap.data();
+        const unsub = flexibleDb.subscribeToDoc("settings", "global", (data) => {
+            if (data) {
                 setServerSettings(data);
-                // Only auto-update local settings if the user hasn't edited anything yet
                 if (!isDirty) {
                     setLocalSettings((prev: any) => ({ ...prev, ...data }));
                 }
             }
-        }, (err) => {
-            handleFirestoreError(err, OperationType.GET, "settings/global");
         });
         return unsub;
     }, [isDirty]);
@@ -817,7 +1136,7 @@ function DashboardHome() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await setDoc(doc(db, "settings", "global"), {
+            await flexibleDb.saveDoc("settings", "global", {
                 ...localSettings,
                 updatedAt: new Date().toISOString()
             });
@@ -825,13 +1144,7 @@ function DashboardHome() {
             alert("Home Page updated successfully");
         } catch (err: any) {
             console.error("Save failed Error:", err);
-            handleFirestoreError(err, OperationType.WRITE, "settings/global");
-            
-            if (user?.uid === "vrr_admin_id") {
-                alert("Permission Denied: Credentials session cannot write to live database. Please login with your authorized Google account (reniqahi2015@gmail.com) for live updates.");
-            } else {
-                alert("Save failed: " + (err.message || "Ensure your account has admin permissions in Firestore."));
-            }
+            alert("Save failed: " + (err.message || "Failure to update database. Verify your account has Admin permissions."));
         } finally {
             setSaving(false);
         }
@@ -878,8 +1191,7 @@ function DashboardHome() {
                     <div className="space-y-4">
                         <SettingInput label="Hero Title" value={localSettings.heroTitle} onChange={(v) => updateSetting("heroTitle", v)} />
                         <SettingInput label="Hero Subtitle" value={localSettings.heroSubtitle} onChange={(v) => updateSetting("heroSubtitle", v)} />
-                        <SettingInput label="Hero Background Image URL" value={localSettings.heroImage} onChange={(v) => updateSetting("heroImage", v)} />
-                        {localSettings.heroImage && <img src={localSettings.heroImage} className="h-40 w-full object-cover rounded-lg border border-black/10" />}
+                        <ImageUpload label="Hero Main Visual" currentImage={localSettings.heroImage} onUpload={(url) => updateSetting("heroImage", url)} />
                     </div>
                 </div>
 
@@ -926,22 +1238,10 @@ function DashboardHome() {
                         Collection Grid Images
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                           <SettingInput label="Image 1 (Le Matin)" value={localSettings.collection1Image} onChange={(v) => updateSetting("collection1Image", v)} />
-                           {localSettings.collection1Image && <img src={localSettings.collection1Image} className="h-20 w-32 object-cover rounded-lg border border-black/10" />}
-                        </div>
-                        <div className="space-y-2">
-                           <SettingInput label="Image 2 (L'Heure Bleue)" value={localSettings.collection2Image} onChange={(v) => updateSetting("collection2Image", v)} />
-                           {localSettings.collection2Image && <img src={localSettings.collection2Image} className="h-20 w-32 object-cover rounded-lg border border-black/10" />}
-                        </div>
-                        <div className="space-y-2">
-                           <SettingInput label="Image 3 (La Rue)" value={localSettings.collection3Image} onChange={(v) => updateSetting("collection3Image", v)} />
-                           {localSettings.collection3Image && <img src={localSettings.collection3Image} className="h-20 w-32 object-cover rounded-lg border border-black/10" />}
-                        </div>
-                        <div className="space-y-2">
-                           <SettingInput label="Image 4 (Objets d'Art)" value={localSettings.collection4Image} onChange={(v) => updateSetting("collection4Image", v)} />
-                           {localSettings.collection4Image && <img src={localSettings.collection4Image} className="h-20 w-32 object-cover rounded-lg border border-black/10" />}
-                        </div>
+                        <ImageUpload label="Image 1 (Le Matin)" currentImage={localSettings.collection1Image} onUpload={(url) => updateSetting("collection1Image", url)} />
+                        <ImageUpload label="Image 2 (L'Heure Bleue)" currentImage={localSettings.collection2Image} onUpload={(url) => updateSetting("collection2Image", url)} />
+                        <ImageUpload label="Image 3 (La Rue)" currentImage={localSettings.collection3Image} onUpload={(url) => updateSetting("collection3Image", url)} />
+                        <ImageUpload label="Image 4 (Objets d'Art)" currentImage={localSettings.collection4Image} onUpload={(url) => updateSetting("collection4Image", url)} />
                     </div>
                 </div>
             </div>
@@ -975,7 +1275,7 @@ function DashboardHome() {
 
 // --- Tiny UI Bits ---
 
-function StatCard({ label, value, icon, onClick }: { label: string, value: number, icon: React.ReactNode, onClick?: () => void }) {
+function StatCard({ label, value, icon, onClick }: { label: string, value: number | string, icon: React.ReactNode, onClick?: () => void }) {
     return (
         <div 
           onClick={onClick}

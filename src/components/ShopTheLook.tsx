@@ -57,7 +57,7 @@ export default function ShopTheLook() {
                   {/* Tooltip */}
                   <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-4 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
                     <div className="bg-white p-4 shadow-2xl rounded-sm w-48 border border-black/5">
-                      <img src={look.image} alt={look.name} className="w-full aspect-square object-cover mb-3" />
+                      <img src={look.image} alt={look.name} className="w-full aspect-square object-cover mb-3" referrerPolicy="no-referrer" />
                       <p className="font-serif text-sm">{look.name}</p>
                       <p className="text-[10px] text-studio-accent uppercase tracking-widest mt-1">{look.price}</p>
                     </div>

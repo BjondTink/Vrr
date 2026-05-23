@@ -78,7 +78,7 @@ export default function About() {
                transition={{ delay: i * 0.1 }}
                className="aspect-square overflow-hidden"
              >
-               <img src={img} alt="Studio" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" />
+               <img src={img} alt="Studio" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" referrerPolicy="no-referrer" />
              </motion.div>
            ))}
         </div>

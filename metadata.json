@@ -1,6 +1,6 @@
 {
-  "name": "Vrr",
-  "description": "A high-end, minimalist studio website showcasing fashion collections, 'Shop the Look' features, and seasonal drops under the Vrr brand.",
+  "name": "Vrr Studio | Professional Admin & Store",
+  "description": "Professional luxury e-commerce with real-time Firebase backend, advanced admin dashboard, secure authentication, and cloud storage for high-end fashion collections.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
