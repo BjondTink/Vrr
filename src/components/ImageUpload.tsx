@@ -12,7 +12,7 @@ interface ImageUploadProps {
 const PRESET_IMAGES = [
   { name: "Paris Runway", url: "https://images.unsplash.com/photo-1509631179647-017733150396?auto=format&fit=crop&q=80&w=1200" },
   { name: "Minimalist Coat", url: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=1200" },
-  { name: "Silk Elegance", url: "https://images.unsplash.com/photo-1539008835270-3dc9d3160914?auto=format&fit=crop&q=80&w=1200" },
+  { name: "Silk Elegance", url: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200" },
   { name: "Autumn Trench", url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200" },
   { name: "Studio White", url: "https://images.unsplash.com/photo-1549439602-43ebca2327af?auto=format&fit=crop&q=80&w=1200" },
   { name: "Raw Linen", url: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&q=80&w=1200" },

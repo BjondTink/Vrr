@@ -25,7 +25,7 @@ const SEED_CATEGORIES = [
 
 const SEED_COLLECTIONS = [
   { id: "le-matin", name: "Le Matin", category: "Essentials", image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=2670" },
-  { id: "l-heure-bleue", name: "L'Heure Bleue", category: "Evening Wear", image: "https://images.unsplash.com/photo-1539008835270-3dc9d3160914?auto=format&fit=crop&q=80&w=2574" },
+  { id: "l-heure-bleue", name: "L'Heure Bleue", category: "Evening Wear", image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=2574" },
   { id: "jardin-de-mars", name: "Jardin de Mars", category: "Accessories", image: "https://images.unsplash.com/photo-1549439602-43ebca2327af?auto=format&fit=crop&q=80&w=2670" },
   { id: "primavera", name: "Primavera", category: "New Arrival", image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=2520" }
 ];
@@ -61,14 +61,41 @@ const DEFAULT_SETTINGS = {
 };
 
 // Local storage management helpers
+const sanitizeDocs = (collectionName: string, items: any[]): any[] => {
+  if (!items) return [];
+  return items.map(item => {
+    if (item && item.image && typeof item.image === "string") {
+      if (item.image.includes("photo-1539008835270-3dc9d3160914")) {
+        console.log(`Migrating broken Unsplash image for ${item.id || 'item'}`);
+        const updated = {
+          ...item,
+          image: item.image.replace("photo-1539008835270-3dc9d3160914", "photo-1539109136881-3be0616acf4b")
+        };
+        // Back-sync corrected item to Firestore if signed in
+        if (item.id) {
+          const { id, ...itemData } = updated;
+          setDoc(doc(db, collectionName, id), itemData).catch(() => {});
+        }
+        return updated;
+      }
+    }
+    return item;
+  });
+};
+
 const getLocal = (key: string, fallback: any) => {
   const data = localStorage.getItem(`vrr_db_${key}`);
   if (!data) {
-    localStorage.setItem(`vrr_db_${key}`, JSON.stringify(fallback));
-    return fallback;
+    const sanitizedFallback = sanitizeDocs(key, fallback);
+    localStorage.setItem(`vrr_db_${key}`, JSON.stringify(sanitizedFallback));
+    return sanitizedFallback;
   }
   try {
-    return JSON.parse(data);
+    const list = JSON.parse(data);
+    if (Array.isArray(list)) {
+      return sanitizeDocs(key, list);
+    }
+    return list;
   } catch (e) {
     return fallback;
   }
@@ -99,8 +126,9 @@ export const flexibleDb = {
       const snap = await getDocs(collection(db, collectionName));
       const liveData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (liveData.length > 0) {
-        setLocal(collectionName, liveData);
-        return liveData;
+        const sanitized = sanitizeDocs(collectionName, liveData);
+        setLocal(collectionName, sanitized);
+        return sanitized;
       }
     } catch (err) {
       console.warn(`Firestore getDocs failed for ${collectionName}, using local storage fallback.`);
@@ -290,6 +318,7 @@ export const flexibleDb = {
 
       if (!snap.empty) {
         const liveData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const sanitizedLive = sanitizeDocs(collectionName, liveData);
         
         // Build a resilient merged list to prevent local edits from being overwritten by older server state
         const mergedMap = new Map();
@@ -302,7 +331,7 @@ export const flexibleDb = {
         });
 
         // 2. Merge server data, respecting updatedAt timestamps
-        liveData.forEach((liveItem: any) => {
+        sanitizedLive.forEach((liveItem: any) => {
           if (!liveItem || !liveItem.id) return;
           
           if (mergedMap.has(liveItem.id)) {

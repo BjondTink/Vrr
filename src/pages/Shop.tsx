@@ -153,7 +153,6 @@ export default function Shop() {
                       src={product.image}
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
                     />
                   ) : (
                     <div className="w-full h-full bg-black/5 flex items-center justify-center">

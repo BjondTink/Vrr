@@ -77,7 +77,6 @@ export default function CollectionGrid() {
                   src={item.image}
                   alt={item.title}
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500" />
                 
