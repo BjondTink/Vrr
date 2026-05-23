@@ -61,26 +61,44 @@ const DEFAULT_SETTINGS = {
 };
 
 // Local storage management helpers
-const sanitizeDocs = (collectionName: string, items: any[]): any[] => {
-  if (!items) return [];
-  return items.map(item => {
-    if (item && item.image && typeof item.image === "string") {
-      if (item.image.includes("photo-1539008835270-3dc9d3160914")) {
-        console.log(`Migrating broken Unsplash image for ${item.id || 'item'}`);
-        const updated = {
-          ...item,
-          image: item.image.replace("photo-1539008835270-3dc9d3160914", "photo-1539109136881-3be0616acf4b")
-        };
-        // Back-sync corrected item to Firestore if signed in
-        if (item.id) {
-          const { id, ...itemData } = updated;
-          setDoc(doc(db, collectionName, id), itemData).catch(() => {});
+const sanitizeDocs = (collectionName: string, items: any): any => {
+  if (!items) return items;
+  if (Array.isArray(items)) {
+    return items.map(item => {
+      if (item && item.image && typeof item.image === "string") {
+        if (item.image.includes("photo-1539008835270-3dc9d3160914")) {
+          console.log(`Migrating broken Unsplash image for ${item.id || 'item'}`);
+          const updated = {
+            ...item,
+            image: item.image.replace("photo-1539008835270-3dc9d3160914", "photo-1539109136881-3be0616acf4b")
+          };
+          // Back-sync corrected item to Firestore if signed in
+          if (item.id) {
+            const { id, ...itemData } = updated;
+            setDoc(doc(db, collectionName, id), itemData).catch(() => {});
+          }
+          return updated;
         }
-        return updated;
+      }
+      return item;
+    });
+  } else if (typeof items === "object") {
+    const updated = { ...items };
+    let changed = false;
+    for (const key of Object.keys(updated)) {
+      if (updated[key] && typeof updated[key] === "string" && updated[key].includes("photo-1539008835270-3dc9d3160914")) {
+        updated[key] = updated[key].replace("photo-1539008835270-3dc9d3160914", "photo-1539109136881-3be0616acf4b");
+        changed = true;
       }
     }
-    return item;
-  });
+    if (changed) {
+      if (collectionName === "settings_global" || collectionName === "settings") {
+        setDoc(doc(db, "settings", "global"), updated).catch(() => {});
+      }
+    }
+    return updated;
+  }
+  return items;
 };
 
 const getLocal = (key: string, fallback: any) => {
@@ -92,10 +110,7 @@ const getLocal = (key: string, fallback: any) => {
   }
   try {
     const list = JSON.parse(data);
-    if (Array.isArray(list)) {
-      return sanitizeDocs(key, list);
-    }
-    return list;
+    return sanitizeDocs(key, list);
   } catch (e) {
     return fallback;
   }
