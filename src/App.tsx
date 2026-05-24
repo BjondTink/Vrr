@@ -83,6 +83,26 @@ function AppContent() {
   const { pathname } = useLocation();
   const isDashboard = pathname.startsWith("/admin") || pathname === "/login";
 
+  useEffect(() => {
+    const unsub = flexibleDb.subscribeToDoc("settings", "global", (data) => {
+      if (data) {
+        if (data.siteTitle) {
+          document.title = data.siteTitle;
+        }
+        if (data.siteFavicon) {
+          let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = data.siteFavicon;
+        }
+      }
+    });
+    return unsub;
+  }, []);
+
   return (
     <main className="min-h-screen selection:bg-studio-accent selection:text-white relative">
       {/* Texture Overlay */}

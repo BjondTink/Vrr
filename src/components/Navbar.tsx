@@ -5,6 +5,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import SearchOverlay from "./SearchOverlay";
 import { Link } from "react-router-dom";
+import { flexibleDb } from "../lib/flexibleDatabase";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -12,6 +13,16 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { totalItems, setIsCartOpen } = useCart();
   const { user, isAdmin } = useAuth();
+  const [settings, setSettings] = useState<any>({ siteName: "Vrr" });
+
+  useEffect(() => {
+    const unsub = flexibleDb.subscribeToDoc("settings", "global", (data) => {
+      if (data) {
+        setSettings((prev: any) => ({ ...prev, ...data }));
+      }
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,7 +72,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex flex-col items-center">
             <span className="font-serif text-2xl md:text-3xl tracking-tighter uppercase font-medium">
-              Vrr
+              {settings.siteName || "Vrr"}
             </span>
           </Link>
 

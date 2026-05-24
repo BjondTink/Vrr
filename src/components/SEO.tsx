@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { flexibleDb } from '../lib/flexibleDatabase';
 
 interface SEOProps {
   title?: string;
@@ -10,12 +11,28 @@ interface SEOProps {
 
 const SEO: React.FC<SEOProps> = ({ title, description, image, article }) => {
   const { pathname } = useLocation();
-  const defaultTitle = "Vrr Studio | Fine Collection Pieces";
-  const defaultDescription = "Discover high-end seasonal collection pieces. Timeless silhouettes met with modern craftsmanship.";
+  const [settings, setSettings] = useState<any>({
+    siteName: "Vrr",
+    siteTitle: "My Google AI Studio App",
+    siteFavicon: "https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=64&auto=format&fit=crop",
+    siteMetaDescription: "Discover high-end seasonal collection pieces. Timeless silhouettes met with modern craftsmanship."
+  });
+
+  useEffect(() => {
+    const unsub = flexibleDb.subscribeToDoc("settings", "global", (data) => {
+      if (data) {
+        setSettings((prev: any) => ({ ...prev, ...data }));
+      }
+    });
+    return unsub;
+  }, []);
+
+  const defaultTitle = settings.siteTitle || "My Google AI Studio App";
+  const defaultDescription = settings.siteMetaDescription || "Discover high-end seasonal collection pieces. Timeless silhouettes met with modern craftsmanship.";
   const siteUrl = window.location.origin;
 
   const seo = {
-    title: title ? `${title} | Vrr Studio` : defaultTitle,
+    title: title ? `${title} | ${settings.siteName || "Vrr"}` : defaultTitle,
     description: description || defaultDescription,
     image: image || `${siteUrl}/logo.png`,
     url: `${siteUrl}${pathname}`,

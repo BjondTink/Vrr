@@ -17,7 +17,9 @@ import {
   Image as ImageIcon,
   Save,
   Loader2,
-  FolderOpen
+  FolderOpen,
+  Layout,
+  Globe
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -34,8 +36,10 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { flexibleDb } from "../lib/flexibleDatabase";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
+import DashboardFooter from "../components/DashboardFooter";
+import DashboardSiteInfo from "../components/DashboardSiteInfo";
 
-type Tab = "overview" | "products" | "categories" | "collections" | "journal" | "orders" | "home";
+type Tab = "overview" | "products" | "categories" | "collections" | "journal" | "orders" | "home" | "footer" | "site_info";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading, logout } = useAuth();
@@ -107,8 +111,10 @@ export default function AdminDashboard() {
           <SidebarLink icon={<FileText size={20}/>} label="Journal" active={activeTab === "journal"} onClick={() => { setActiveTab("journal"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           <SidebarLink icon={<ShoppingBag size={20}/>} label="Orders" active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           <SidebarLink icon={<FolderOpen size={20}/>} label="Collections" active={activeTab === "collections"} onClick={() => { setActiveTab("collections"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
-          <div className="pt-8 mb-2">
+          <div className="pt-8 mb-2 space-y-2">
             <SidebarLink icon={<Settings size={20}/>} label="Home Page" active={activeTab === "home"} onClick={() => { setActiveTab("home"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
+            <SidebarLink icon={<Layout size={20}/>} label="Footer" active={activeTab === "footer"} onClick={() => { setActiveTab("footer"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
+            <SidebarLink icon={<Globe size={20}/>} label="Site Info" active={activeTab === "site_info"} onClick={() => { setActiveTab("site_info"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           </div>
         </nav>
 
@@ -174,6 +180,8 @@ export default function AdminDashboard() {
             {activeTab === "home" && <DashboardHome />}
             {activeTab === "orders" && <DashboardOrders />}
             {activeTab === "journal" && <DashboardJournal />}
+            {activeTab === "footer" && <DashboardFooter />}
+            {activeTab === "site_info" && <DashboardSiteInfo />}
           </div>
         </div>
       </main>
