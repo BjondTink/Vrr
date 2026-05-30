@@ -35,7 +35,6 @@ export default function Navbar() {
   const navLinks = [
     { name: "Shop", href: "/shop" },
     { name: "Collections", href: "/collections" },
-    { name: "Journal", href: "/journal" },
     { name: "About", href: "/about" },
     ...(isAdmin ? [{ name: "Admin", href: "/admin" }] : []),
   ];

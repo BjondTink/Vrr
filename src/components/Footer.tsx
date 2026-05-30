@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Instagram, Facebook, Twitter, Lock, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
@@ -7,6 +7,7 @@ import { flexibleDb } from "../lib/flexibleDatabase";
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const { user, logout } = useAuth();
+  const [footerPages, setFooterPages] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({
     footerLogo: "Vrr",
     footerDescription: "A creative space dedicated to the intersection of art, fashion, and human connection. Designed in Paris, inspired by the world.",
@@ -23,23 +24,7 @@ export default function Footer() {
     footerColLink4Text: "Archive",
     footerColLink4Url: "/shop?filter=archive",
     footerStudioTitle: "Studio",
-    footerStudioLink1Text: "Our Story",
-    footerStudioLink1Url: "/story",
-    footerStudioLink2Text: "Sustainability",
-    footerStudioLink2Url: "/sustainability",
-    footerStudioLink3Text: "Journal",
-    footerStudioLink3Url: "/journal",
-    footerStudioLink4Text: "Contact",
-    footerStudioLink4Url: "/contact",
     footerAssistTitle: "Assist",
-    footerAssistLink1Text: "Shipping & Returns",
-    footerAssistLink1Url: "/shipping",
-    footerAssistLink2Text: "Size Guide",
-    footerAssistLink2Url: "/size-guide",
-    footerAssistLink3Text: "Privacy Policy",
-    footerAssistLink3Url: "/privacy",
-    footerAssistLink4Text: "Terms of Service",
-    footerAssistLink4Url: "/terms",
     footerCopyright: "Vrr. All Rights Reserved.",
     footerLocation: "Paris / London / NYC"
   });
@@ -49,6 +34,14 @@ export default function Footer() {
       if (data) {
         setSettings((prev: any) => ({ ...prev, ...data }));
       }
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = flexibleDb.subscribeToCollection("footerPages", (items) => {
+      const sorted = [...items].sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+      setFooterPages(sorted);
     });
     return unsub;
   }, []);
@@ -130,10 +123,13 @@ export default function Footer() {
               {settings.footerStudioTitle || "Studio"}
             </h4>
             <ul className="space-y-4 text-xs uppercase tracking-widest text-studio-black/70">
-              {renderLink(settings.footerStudioLink1Text, settings.footerStudioLink1Url)}
-              {renderLink(settings.footerStudioLink2Text, settings.footerStudioLink2Url)}
-              {renderLink(settings.footerStudioLink3Text, settings.footerStudioLink3Url)}
-              {renderLink(settings.footerStudioLink4Text, settings.footerStudioLink4Url)}
+              {footerPages
+                .filter((p) => p.column === "studio")
+                .map((p) => (
+                  <React.Fragment key={p.id || p.label}>
+                    {renderLink(p.label, p.url)}
+                  </React.Fragment>
+                ))}
             </ul>
           </div>
 
@@ -142,10 +138,13 @@ export default function Footer() {
               {settings.footerAssistTitle || "Assist"}
             </h4>
             <ul className="space-y-4 text-xs uppercase tracking-widest text-studio-black/70">
-              {renderLink(settings.footerAssistLink1Text, settings.footerAssistLink1Url)}
-              {renderLink(settings.footerAssistLink2Text, settings.footerAssistLink2Url)}
-              {renderLink(settings.footerAssistLink3Text, settings.footerAssistLink3Url)}
-              {renderLink(settings.footerAssistLink4Text, settings.footerAssistLink4Url)}
+              {footerPages
+                .filter((p) => p.column === "assist")
+                .map((p) => (
+                  <React.Fragment key={p.id || p.label}>
+                    {renderLink(p.label, p.url)}
+                  </React.Fragment>
+                ))}
             </ul>
           </div>
 

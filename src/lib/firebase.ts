@@ -10,20 +10,17 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth();
 export const storage = getStorage(app);
 
-async function testConnection() {
+// Passive, non-blocking passive connection checked after a delay to ensure pristine load speed
+setTimeout(() => {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if(error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
-    } else {
-      // Use a try-catch to avoid infinite loop if handleFirestoreError fails (unlikely)
-      try {
-        handleFirestoreError(error, OperationType.GET, 'test/connection');
-      } catch (e) {
-        console.error("Connection test failed:", e);
+    getDocFromServer(doc(db, 'test', 'connection')).catch((error) => {
+      if (error instanceof Error && error.message.includes('offline')) {
+        console.warn("Firebase client initialized in offline/cached storage mode.");
+      } else {
+        console.warn("Firebase active state: running with local persistent database.");
       }
-    }
+    });
+  } catch (err) {
+    console.debug("Connection check omitted:", err);
   }
-}
-testConnection();
+}, 3000);

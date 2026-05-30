@@ -23,6 +23,12 @@ import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
 import CartDrawer from "./components/CartDrawer";
 import AdminDashboard from "./pages/AdminDashboard";
+import Sustainability from "./pages/Sustainability";
+import Contact from "./pages/Contact";
+import Shipping from "./pages/Shipping";
+import SizeGuide from "./pages/SizeGuide";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 import { useState } from "react";
 import { flexibleDb } from "./lib/flexibleDatabase";
@@ -129,6 +135,13 @@ function AppContent() {
         <Route path="/collections" element={<div className="pt-32"><CollectionGrid /></div>} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/about" element={<About />} />
+        <Route path="/story" element={<About />} />
+        <Route path="/sustainability" element={<Sustainability />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/shipping" element={<Shipping />} />
+        <Route path="/size-guide" element={<SizeGuide />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/success" element={<Success />} />
         <Route path="/product/:id" element={<ProductDetail />} />

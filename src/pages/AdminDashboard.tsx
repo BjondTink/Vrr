@@ -19,7 +19,8 @@ import {
   Loader2,
   FolderOpen,
   Layout,
-  Globe
+  Globe,
+  BookOpen
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -38,8 +39,9 @@ import { flexibleDb } from "../lib/flexibleDatabase";
 import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandler";
 import DashboardFooter from "../components/DashboardFooter";
 import DashboardSiteInfo from "../components/DashboardSiteInfo";
+import DashboardFooterPages from "../components/DashboardFooterPages";
 
-type Tab = "overview" | "products" | "categories" | "collections" | "journal" | "orders" | "home" | "footer" | "site_info";
+type Tab = "overview" | "products" | "categories" | "collections" | "journal" | "orders" | "home" | "footer" | "site_info" | "footer_pages";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading, logout } = useAuth();
@@ -114,6 +116,7 @@ export default function AdminDashboard() {
           <div className="pt-8 mb-2 space-y-2">
             <SidebarLink icon={<Settings size={20}/>} label="Home Page" active={activeTab === "home"} onClick={() => { setActiveTab("home"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
             <SidebarLink icon={<Layout size={20}/>} label="Footer" active={activeTab === "footer"} onClick={() => { setActiveTab("footer"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
+            <SidebarLink icon={<BookOpen size={20}/>} label="Footer pages" active={activeTab === "footer_pages"} onClick={() => { setActiveTab("footer_pages"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
             <SidebarLink icon={<Globe size={20}/>} label="Site Info" active={activeTab === "site_info"} onClick={() => { setActiveTab("site_info"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           </div>
         </nav>
@@ -181,6 +184,7 @@ export default function AdminDashboard() {
             {activeTab === "orders" && <DashboardOrders />}
             {activeTab === "journal" && <DashboardJournal />}
             {activeTab === "footer" && <DashboardFooter />}
+            {activeTab === "footer_pages" && <DashboardFooterPages />}
             {activeTab === "site_info" && <DashboardSiteInfo />}
           </div>
         </div>
@@ -207,6 +211,18 @@ function SidebarLink({ icon, label, active, onClick, collapsed }: { icon: React.
 function DashboardOverview({ onTabChange }: { onTabChange: (tab: Tab) => void }) {
     const { isAdmin, user } = useAuth();
     const [stats, setStats] = useState({ products: 0, categories: 0, orders: 0, journal: 0, revenue: 0 });
+    const [subscribers, setSubscribers] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+        const unsub = flexibleDb.subscribeToCollection("subscribers", (items) => {
+            const sorted = [...items].sort((a: any, b: any) => {
+                return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+            });
+            setSubscribers(sorted);
+        });
+        return unsub;
+    }, [isAdmin]);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -237,7 +253,7 @@ function DashboardOverview({ onTabChange }: { onTabChange: (tab: Tab) => void })
             }
         };
         fetchStats();
-    }, [isAdmin, user?.uid]);
+    }, [isAdmin, user?.uid, subscribers.length]);
 
     const chartData = [
       { name: 'Mon', value: 4000 },
@@ -305,6 +321,79 @@ function DashboardOverview({ onTabChange }: { onTabChange: (tab: Tab) => void })
                      Update Storefront
                    </button>
                 </div>
+            </div>
+
+            {/* Studio Subscribers Live Feed */}
+            <div className="bg-white p-6 lg:p-10 rounded-xl border border-black/5 space-y-6">
+                <div className="flex justify-between items-center border-b border-black/5 pb-4">
+                    <div>
+                        <h3 className="font-serif text-xl lg:text-2xl text-studio-black">Studio Registrations</h3>
+                        <p className="text-[10px] uppercase tracking-widest text-[#999] font-bold">Email & Instagram Subscribers</p>
+                    </div>
+                    <span className="px-3 py-1 bg-studio-accent text-white text-[10px] uppercase tracking-widest font-bold rounded-full">
+                        {subscribers.length} Members
+                    </span>
+                </div>
+
+                {subscribers.length === 0 ? (
+                    <div className="py-12 text-center text-black/40 text-xs uppercase tracking-widest">
+                        No subscribers registered yet.
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left font-sans text-xs">
+                            <thead>
+                                <tr className="uppercase tracking-widest text-black/40 border-b border-black/5 pb-4 text-[10px] font-bold">
+                                    <th className="py-3">Email Address</th>
+                                    <th className="py-3">Instagram Handle</th>
+                                    <th className="py-3">Registered On</th>
+                                    <th className="py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5">
+                                {subscribers.map((item) => (
+                                    <tr key={item.id} className="hover:bg-[#fcfbf9]/50 transition-colors">
+                                        <td className="py-4 font-mono text-studio-black">{item.email}</td>
+                                        <td className="py-4 font-semibold text-studio-accent">
+                                            {item.instagram !== "N/A" ? (
+                                                <a 
+                                                    href={`https://instagram.com/${item.instagram.replace('@', '')}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="underline hover:opacity-80"
+                                                >
+                                                    {item.instagram}
+                                                </a>
+                                            ) : (
+                                                <span className="text-black/30 font-normal">N/A</span>
+                                            )}
+                                        </td>
+                                        <td className="py-4 text-[#999] font-mono">
+                                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString(undefined, {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            }) : "N/A"}
+                                        </td>
+                                        <td className="py-4 text-right">
+                                            <button 
+                                                onClick={async () => {
+                                                    if (confirm("Remove subscriber?")) {
+                                                        await flexibleDb.deleteDoc("subscribers", item.id);
+                                                    }
+                                                }}
+                                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100/50 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-widest font-bold transition-all"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
             
             <div className="p-6 lg:p-10 bg-[#F9F8F6] rounded-xl border border-black/5">

@@ -49,6 +49,89 @@ const SEED_JOURNAL_POSTS = [
   }
 ];
 
+const SEED_FOOTER_PAGES = [
+  {
+    id: "story",
+    label: "Our Story",
+    url: "/story",
+    column: "studio",
+    order: 1,
+    pageTitle: "Our Story",
+    pageSubtitle: "About the Studio",
+    pageBody: "VRR was born in Tirana and crafted in Paris, representing a continuous study of organic materials, tailored lines, and quiet luxury. We exist outside of traditional fashion seasons, choosing to drop micro-editions only when each garment has been thoroughly refined."
+  },
+  {
+    id: "sustainability",
+    label: "Sustainability",
+    url: "/sustainability",
+    column: "studio",
+    order: 2,
+    pageTitle: "Pledging to the Earth.",
+    pageSubtitle: "Studio Philosophy & Responsibility",
+    pageBody: "We don’t believe in seasons or disposable trends. For Vrr, sustainability is not a marketing strategy or a separate capsule—it is the baseline architecture of every garment we draft, sew, and package."
+  },
+  {
+    id: "journal",
+    label: "Journal",
+    url: "/journal",
+    column: "studio",
+    order: 3,
+    pageTitle: "Journal Logs",
+    pageSubtitle: "Studio Records & Concepts",
+    pageBody: "Thoughts from active design tables, collections history, and craftsmanship reports."
+  },
+  {
+    id: "contact",
+    label: "Contact",
+    url: "/contact",
+    column: "studio",
+    order: 4,
+    pageTitle: "Ask our concierge.",
+    pageSubtitle: "Connect With the Studio",
+    pageBody: "We are always here to listen. Whether you require meticulous sizing consultations, customized fitting edits, or details on imminent seasonal drops, please drop us a message."
+  },
+  {
+    id: "shipping",
+    label: "Shipping & Returns",
+    url: "/shipping",
+    column: "assist",
+    order: 1,
+    pageTitle: "Shipping & Transit.",
+    pageSubtitle: "Studio Logistical Framework",
+    pageBody: "Every Vrr piece is hand-wrapped in tissue paper, loaded in custom organic cotton garment bags, and dispatched inside FSC-certified biodegradable containers directly from our atelier."
+  },
+  {
+    id: "size-guide",
+    label: "Size Guide",
+    url: "/size-guide",
+    column: "assist",
+    order: 2,
+    pageTitle: "Perfecting the Silhouette.",
+    pageSubtitle: "Fitting Room Architecture",
+    pageBody: "Each Vrr item is meticulously patterned to honor movement, drape, and physical ease. Follow our custom size guide model to secure your exact proportions."
+  },
+  {
+    id: "privacy",
+    label: "Privacy Policy",
+    url: "/privacy",
+    column: "assist",
+    order: 3,
+    pageTitle: "Privacy & Data Sovereignty.",
+    pageSubtitle: "Legal Protections",
+    pageBody: "We value your digital footprint with the exact same commitment and respect we hold for our organic fibers. Read about how we secure, process, and respect your private data."
+  },
+  {
+    id: "terms",
+    label: "Terms of Service",
+    url: "/terms",
+    column: "assist",
+    order: 4,
+    pageTitle: "Terms of Service.",
+    pageSubtitle: "Transactional Rules",
+    pageBody: "Our legal conditions are established to ensure total security, inventory precision, and intellectual safety for everyone. Read about our billing policies and product limits."
+  }
+];
+
 const DEFAULT_SETTINGS = {
   philosophyQuote: "Art is the soul of our studio, fashion is the language we use to speak to the world.",
   philosophyTag: "Our Philosophy",
@@ -97,7 +180,23 @@ const DEFAULT_SETTINGS = {
   siteName: "Vrr",
   siteTitle: "My Google AI Studio App",
   siteFavicon: "https://images.unsplash.com/photo-1549439602-43ebca2327af?q=80&w=64&auto=format&fit=crop",
-  siteMetaDescription: "Discover high-end seasonal collection pieces. Timeless silhouettes met with modern craftsmanship."
+  siteMetaDescription: "Discover high-end seasonal collection pieces. Timeless silhouettes met with modern craftsmanship.",
+  newsletterInstagram: "https://www.instagram.com/v_dessign/",
+  // Lookbook custom configuration settings
+  lookbookMainImage: "https://images.unsplash.com/photo-1509631179647-017733150396?auto=format&fit=crop&q=80&w=2576",
+  lookbookTitle: "Every Look Tells a Story",
+  lookbookSubtitle: "Inside the Studio",
+  lookbookDescription: 'We believe in pieces that live beyond the trends. Our "Shop the Look" curators bring together textures and tones that harmonize effortlessly.',
+  lookbookProd1Name: "Linen Trench Coat",
+  lookbookProd1Price: "$340",
+  lookbookProd1Image: "https://images.unsplash.com/photo-1544022613-e87ca7fdad78?auto=format&fit=crop&q=80&w=2574",
+  lookbookProd1Top: "30%",
+  lookbookProd1Left: "45%",
+  lookbookProd2Name: "Silk Slip Dress",
+  lookbookProd2Price: "$210",
+  lookbookProd2Image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&q=80&w=2574",
+  lookbookProd2Top: "60%",
+  lookbookProd2Left: "55%"
 };
 
 // Local storage management helpers
@@ -126,9 +225,18 @@ const sanitizeDocs = (collectionName: string, items: any): any => {
     const updated = { ...items };
     let changed = false;
     for (const key of Object.keys(updated)) {
-      if (updated[key] && typeof updated[key] === "string" && updated[key].includes("photo-1539008835270-3dc9d3160914")) {
-        updated[key] = updated[key].replace("photo-1539008835270-3dc9d3160914", "photo-1539109136881-3be0616acf4b");
-        changed = true;
+      if (updated[key] && typeof updated[key] === "string") {
+        const val = updated[key];
+        if (val.includes("photo-1539008835270-3dc9d3160914")) {
+          updated[key] = val.replace("photo-1539008835270-3dc9d3160914", "photo-1539109136881-3be0616acf4b");
+          changed = true;
+        }
+        // Safety lock: truncate string if it's abnormally large (e.g., pasted high-res Base64 image)
+        if (val.length > 150000) {
+          console.warn(`Field "${key}" length is abnormally large (${val.length} chars). Resetting to safe default.`);
+          updated[key] = (DEFAULT_SETTINGS as any)[key] || "";
+          changed = true;
+        }
       }
     }
     if (changed) {
@@ -142,41 +250,35 @@ const sanitizeDocs = (collectionName: string, items: any): any => {
 };
 
 const getLocal = (key: string, fallback: any) => {
-  const data = localStorage.getItem(`vrr_db_${key}`);
-  if (!data) {
-    const sanitizedFallback = sanitizeDocs(key, fallback);
-    localStorage.setItem(`vrr_db_${key}`, JSON.stringify(sanitizedFallback));
-    return sanitizedFallback;
-  }
   try {
+    const data = localStorage.getItem(`vrr_db_${key}`);
+    if (!data) {
+      const sanitizedFallback = sanitizeDocs(key, fallback);
+      try {
+        localStorage.setItem(`vrr_db_${key}`, JSON.stringify(sanitizedFallback));
+      } catch (e) {}
+      return sanitizedFallback;
+    }
     const list = JSON.parse(data);
     return sanitizeDocs(key, list);
   } catch (e) {
+    console.warn(`localStorage read failed for ${key}, using offline fallback:`, e);
     return fallback;
   }
 };
 
 const setLocal = (key: string, value: any) => {
-  localStorage.setItem(`vrr_db_${key}`, JSON.stringify(value));
+  try {
+    localStorage.setItem(`vrr_db_${key}`, JSON.stringify(value));
+  } catch (e) {
+    console.warn("localStorage write failed (quota exceeded):", e);
+  }
   // Emit custom event to notify active listeners about changes
   window.dispatchEvent(new CustomEvent(`vrr_db_change_${key}`, { detail: value }));
 };
 
-// Force cache reset to resolve any existing de-synchronization across tabs
-const FORCE_RESYNC_KEY = "vrr_db_resync_v6";
-if (localStorage.getItem(FORCE_RESYNC_KEY) !== "true") {
-  localStorage.removeItem("vrr_db_products");
-  localStorage.removeItem("vrr_db_categories");
-  localStorage.removeItem("vrr_db_collections");
-  localStorage.removeItem("vrr_db_journalPosts");
-  localStorage.removeItem("vrr_db_settings_global");
-  localStorage.removeItem("vrr_db_orders");
-  localStorage.removeItem("vrr_seeded_products");
-  localStorage.removeItem("vrr_seeded_categories");
-  localStorage.removeItem("vrr_seeded_collections");
-  localStorage.removeItem("vrr_seeded_journalPosts");
-  localStorage.setItem(FORCE_RESYNC_KEY, "true");
-}
+// Cache cleared checks disabled to protect user customizations in the Admin panel.
+
 
 // Initial state load
 const initializeLocalStorageDb = () => {
@@ -185,6 +287,7 @@ const initializeLocalStorageDb = () => {
   getLocal("collections", SEED_COLLECTIONS);
   getLocal("journalPosts", SEED_JOURNAL_POSTS);
   getLocal("settings_global", DEFAULT_SETTINGS);
+  getLocal("footerPages", SEED_FOOTER_PAGES);
   getLocal("orders", []);
 };
 
@@ -206,6 +309,7 @@ export const flexibleDb = {
         else if (collectionName === "categories") defaultFallback = SEED_CATEGORIES;
         else if (collectionName === "collections") defaultFallback = SEED_COLLECTIONS;
         else if (collectionName === "journalPosts") defaultFallback = SEED_JOURNAL_POSTS;
+        else if (collectionName === "footerPages") defaultFallback = SEED_FOOTER_PAGES;
 
         const localList = getLocal(collectionName, defaultFallback);
         const toSeed = localList.length > 0 ? localList : defaultFallback;
@@ -230,6 +334,7 @@ export const flexibleDb = {
     if (collectionName === "categories") return getLocal("categories", SEED_CATEGORIES);
     if (collectionName === "collections") return getLocal("collections", SEED_COLLECTIONS);
     if (collectionName === "journalPosts") return getLocal("journalPosts", SEED_JOURNAL_POSTS);
+    if (collectionName === "footerPages") return getLocal("footerPages", SEED_FOOTER_PAGES);
     if (collectionName === "orders") return getLocal("orders", []);
     return getLocal(collectionName, []);
   },
@@ -369,6 +474,7 @@ export const flexibleDb = {
     else if (collectionName === "categories") fallbackData = getLocal("categories", SEED_CATEGORIES);
     else if (collectionName === "collections") fallbackData = getLocal("collections", SEED_COLLECTIONS);
     else if (collectionName === "journalPosts") fallbackData = getLocal("journalPosts", SEED_JOURNAL_POSTS);
+    else if (collectionName === "footerPages") fallbackData = getLocal("footerPages", SEED_FOOTER_PAGES);
     else if (collectionName === "orders") fallbackData = getLocal("orders", []);
     else fallbackData = getLocal(collectionName, []);
 
@@ -408,6 +514,7 @@ export const flexibleDb = {
       else if (collectionName === "categories") defaultFallback = SEED_CATEGORIES;
       else if (collectionName === "collections") defaultFallback = SEED_COLLECTIONS;
       else if (collectionName === "journalPosts") defaultFallback = SEED_JOURNAL_POSTS;
+      else if (collectionName === "footerPages") defaultFallback = SEED_FOOTER_PAGES;
 
       if (!snap.empty) {
         const liveData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -472,8 +579,9 @@ export const flexibleDb = {
       if (unsubscribedFirestore) return;
       if (snap.exists()) {
         const liveData = snap.data();
-        setLocal(localStoreKey, liveData);
-        onUpdate(liveData);
+        const sanitized = sanitizeDocs(`${collectionName}_${docId}`, liveData);
+        setLocal(localStoreKey, sanitized);
+        onUpdate(sanitized);
       } else {
         if (defaultData) {
           setDoc(doc(db, collectionName, docId), { ...defaultData, adminPasscode: "valentinavrr02" }).catch(() => {});

@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { Upload, X, Loader2, Link as LinkIcon } from 'lucide-react';
+import { flexibleDb } from '../lib/flexibleDatabase';
 
 interface ImageUploadProps {
   onUpload: (url: string) => void;
@@ -82,6 +83,19 @@ export default function ImageUpload({ onUpload, label, currentImage }: ImageUplo
   const [progress, setProgress] = useState(0);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [cloudinaryConfig, setCloudinaryConfig] = useState<{ cloudName?: string, preset?: string }>({});
+
+  useEffect(() => {
+    const unsub = flexibleDb.subscribeToDoc("settings", "global", (data) => {
+      if (data) {
+        setCloudinaryConfig({
+          cloudName: data.cloudinaryCloudName || '',
+          preset: data.cloudinaryUploadPreset || ''
+        });
+      }
+    });
+    return unsub;
+  }, []);
 
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -104,28 +118,73 @@ export default function ImageUpload({ onUpload, label, currentImage }: ImageUplo
       const base64Url = await compressImage(origFile);
       const file = dataURLtoFile(base64Url, origFile.name);
 
-      const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const triggerFirebaseUpload = () => {
+        const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(Math.max(10, p));
-        },
-        async (error) => {
-          console.warn("Firebase Storage upload failed, falling back to compressed Base64:", error);
-          onUpload(base64Url);
-          setUploading(false);
-          setProgress(0);
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          onUpload(downloadURL);
-          setUploading(false);
-          setProgress(0);
-        }
-      );
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setProgress(Math.max(10, p));
+          },
+          async (error) => {
+            console.warn("Firebase Storage upload failed, falling back to compressed Base64:", error);
+            onUpload(base64Url);
+            setUploading(false);
+            setProgress(0);
+          },
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            onUpload(downloadURL);
+            setUploading(false);
+            setProgress(0);
+          }
+        );
+      };
+
+      // 2. Check if Cloudinary is configured
+      if (cloudinaryConfig.cloudName && cloudinaryConfig.preset) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`, true);
+
+        xhr.upload.addEventListener('progress', (ev) => {
+          if (ev.lengthComputable) {
+            const p = (ev.loaded / ev.total) * 100;
+            setProgress(Math.max(10, p));
+          }
+        });
+
+        xhr.onload = () => {
+          if (xhr.status === 200 || xhr.status === 201) {
+            try {
+              const resp = JSON.parse(xhr.responseText);
+              if (resp.secure_url || resp.url) {
+                onUpload(resp.secure_url || resp.url);
+                setUploading(false);
+                setProgress(0);
+                return;
+              }
+            } catch (err) {
+              console.error("Failed to parse Cloudinary response:", err);
+            }
+          }
+          console.warn("Cloudinary upload failed with status:", xhr.status, ", falling back to Firebase Storage.");
+          triggerFirebaseUpload();
+        };
+
+        xhr.onerror = () => {
+          console.warn("Cloudinary Upload connection failed, falling back to Firebase Storage.");
+          triggerFirebaseUpload();
+        };
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', cloudinaryConfig.preset);
+        xhr.send(formData);
+      } else {
+        triggerFirebaseUpload();
+      }
     } catch (storageErr) {
       console.warn("Image compression or Storage failed, using standard Base64 fallback:", storageErr);
       try {
