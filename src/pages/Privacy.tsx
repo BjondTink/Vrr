@@ -1,7 +1,20 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
+import { flexibleDb } from "../lib/flexibleDatabase";
 
 export default function Privacy() {
+  const [pageData, setPageData] = useState<any>(null);
+  
+  useEffect(() => {
+    const unsub = flexibleDb.subscribeToCollection("footerPages", (items) => {
+      const match = items.find((p) => p.id === "privacy");
+      if (match) {
+        setPageData(match);
+      }
+    });
+    return unsub;
+  }, []);
+
   const points = [
     {
       title: "1. Information We Secure",
@@ -26,14 +39,33 @@ export default function Privacy() {
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         
         {/* Header */}
-        <div className="max-w-3xl mb-24">
-          <p className="uppercase tracking-[0.4em] text-[10px] mb-6 text-studio-accent font-semibold text-left">Legal Protections</p>
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.9] text-left mb-12">
-            Privacy & <br /> Data Sovereignty.
-          </h1>
-          <p className="text-lg md:text-xl text-studio-black/70 leading-relaxed font-light text-left">
-            We value your digital footprint with the exact same commitment and respect we hold for our organic fibers. Read about how we secure, process, and respect your private data.
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center mb-24">
+          <div className={pageData?.pageImage ? "lg:col-span-7" : "lg:col-span-12 max-w-3xl"}>
+            <p className="uppercase tracking-[0.4em] text-[10px] mb-6 text-studio-accent font-semibold text-left">
+              {pageData?.pageSubtitle || "Legal Protections"}
+            </p>
+            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.9] text-left mb-12 whitespace-pre-line">
+              {pageData?.pageTitle || "Privacy & \n Data Sovereignty."}
+            </h1>
+            <p className="text-lg md:text-xl text-studio-black/70 leading-relaxed font-light text-left whitespace-pre-line">
+              {pageData?.pageBody || "We value your digital footprint with the exact same commitment and respect we hold for our organic fibers. Read about how we secure, process, and respect your private data."}
+            </p>
+          </div>
+          {pageData?.pageImage && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="lg:col-span-5 aspect-[4/3] rounded overflow-hidden shadow-sm border border-black/5"
+            >
+              <img 
+                src={pageData.pageImage} 
+                alt="Privacy Banner" 
+                className="w-full h-full object-cover grayscale-[0.2]"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+          )}
         </div>
 
         {/* Content Layout */}

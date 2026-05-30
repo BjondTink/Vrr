@@ -1,14 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Check, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { flexibleDb } from "../lib/flexibleDatabase";
 
 export default function Contact() {
+  const [pageData, setPageData] = useState<any>(null);
   const [formState, setFormState] = useState({
     name: "",
     email: "",
     subject: "Inquiry",
     message: ""
   });
+
+  useEffect(() => {
+    const unsub = flexibleDb.subscribeToCollection("footerPages", (items) => {
+      const match = items.find((p) => p.id === "contact");
+      if (match) {
+        setPageData(match);
+      }
+    });
+    return unsub;
+  }, []);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -36,21 +48,38 @@ export default function Contact() {
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         
         {/* Header */}
-        <div className="max-w-3xl mb-24">
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="uppercase tracking-[0.4em] text-[10px] mb-6 text-studio-accent font-semibold"
-          >
-            Connect With the Studio
-          </motion.p>
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.9] mb-12">
-            Ask our <br /> consierge.
-          </h1>
-          <p className="text-lg md:text-xl text-studio-black/70 leading-relaxed font-light">
-            We are always here to listen. Whether you require meticulous sizing consultations, customized fitting edits, or details on imminent seasonal drops, please drop us a message.
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center mb-24">
+          <div className={pageData?.pageImage ? "lg:col-span-7" : "lg:col-span-12 max-w-3xl"}>
+            <motion.p 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="uppercase tracking-[0.4em] text-[10px] mb-6 text-studio-accent font-semibold text-left"
+            >
+              {pageData?.pageSubtitle || "Connect With the Studio"}
+            </motion.p>
+            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.9] text-left mb-12 whitespace-pre-line">
+              {pageData?.pageTitle || "Ask our \n concierge."}
+            </h1>
+            <p className="text-lg md:text-xl text-studio-black/70 leading-relaxed font-light text-left whitespace-pre-line">
+              {pageData?.pageBody || "We are always here to listen. Whether you require meticulous sizing consultations, customized fitting edits, or details on imminent seasonal drops, please drop us a message."}
+            </p>
+          </div>
+          {pageData?.pageImage && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="lg:col-span-5 aspect-[4/3] rounded overflow-hidden shadow-sm border border-black/5"
+            >
+              <img 
+                src={pageData.pageImage} 
+                alt="Concierge Department" 
+                className="w-full h-full object-cover grayscale-[0.2]"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+          )}
         </div>
 
         {/* Content Layout */}

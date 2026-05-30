@@ -99,6 +99,13 @@ service cloud.firestore {
       allow delete: if isAdmin(existing());
     }
 
+    match /footerPages/{pageId} {
+      allow read: if true;
+      allow create: if isAdmin(incoming()) && isValidId(pageId);
+      allow update: if isAdmin(incoming()) || isAdmin(existing());
+      allow delete: if isAdmin(existing());
+    }
+
     match /orders/{orderId} {
       allow read: if isAdmin(incoming()) || isAdmin(existing()) || (isSignedIn() && existing().get('userId', '') == request.auth.uid);
       allow list: if isSignedIn();

@@ -41,7 +41,7 @@ export default function About() {
             className="aspect-[4/5] overflow-hidden rounded-sm"
           >
             <img 
-              src="https://images.unsplash.com/photo-1549439602-43ebca2327af?auto=format&fit=crop&q=80&w=2670" 
+              src={pageData?.pageImage || "https://images.unsplash.com/photo-1549439602-43ebca2327af?auto=format&fit=crop&q=80&w=2670"} 
               alt="Studio Atmosphere" 
               className="w-full h-full object-cover grayscale-[0.3]"
               referrerPolicy="no-referrer"

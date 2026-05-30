@@ -24,10 +24,8 @@ const PRESET_IMAGES = [
 const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.75): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
     reader.onload = (event) => {
       const img = new Image();
-      img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let width = img.width;
@@ -60,22 +58,38 @@ const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.
         resolve(dataUrl);
       };
       img.onerror = (err) => reject(err);
+      img.src = event.target?.result as string;
     };
     reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
   });
 };
 
-const dataURLtoFile = (dataurl: string, filename: string): File => {
-  const arr = dataurl.split(',');
-  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
+const dataURLtoFile = (dataurl: string, filename: string): File | Blob => {
+  try {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    const baseName = filename.substring(0, filename.lastIndexOf('.')) || filename;
+    try {
+      return new File([u8arr], `${baseName}_compressed.jpg`, { type: mime });
+    } catch (e) {
+      const blob = new Blob([u8arr], { type: mime });
+      Object.defineProperty(blob, 'name', {
+        value: `${baseName}_compressed.jpg`,
+        writable: true
+      });
+      return blob;
+    }
+  } catch (err) {
+    console.error("dataURLtoFile failed:", err);
+    throw err;
   }
-  const baseName = filename.substring(0, filename.lastIndexOf('.')) || filename;
-  return new File([u8arr], `${baseName}_compressed.jpg`, { type: mime });
 };
 
 export default function ImageUpload({ onUpload, label, currentImage }: ImageUploadProps) {
@@ -113,14 +127,19 @@ export default function ImageUpload({ onUpload, label, currentImage }: ImageUplo
     setUploading(true);
     setProgress(10);
     
+    // Generate a Base64 string from the original file as an ultimate local fallback
+    let fallbackBase64 = "";
     try {
-      // 1. Client-side compress before doing anything to minimize transmission size and base64 memory impact
-      const base64Url = await compressImage(origFile);
-      const file = dataURLtoFile(base64Url, origFile.name);
+      fallbackBase64 = await convertToBase64(origFile);
+    } catch (err) {
+      console.warn("Base64 preparation fallback failed:", err);
+    }
 
+    const performUpload = (fileToUpload: File | Blob) => {
       const triggerFirebaseUpload = () => {
-        const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+        const fileName = (fileToUpload as any).name || `image_${Date.now()}.jpg`;
+        const storageRef = ref(storage, `images/${Date.now()}_${fileName}`);
+        const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
 
         uploadTask.on(
           'state_changed',
@@ -129,21 +148,30 @@ export default function ImageUpload({ onUpload, label, currentImage }: ImageUplo
             setProgress(Math.max(10, p));
           },
           async (error) => {
-            console.warn("Firebase Storage upload failed, falling back to compressed Base64:", error);
-            onUpload(base64Url);
+            console.warn("Firebase Storage upload failed, falling back to Base64:", error);
+            if (fallbackBase64) {
+              onUpload(fallbackBase64);
+            } else {
+              alert("Image upload failed. Please try again.");
+            }
             setUploading(false);
             setProgress(0);
           },
           async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            onUpload(downloadURL);
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              onUpload(downloadURL);
+            } catch (err) {
+              console.warn("Failed to get download URL, falling back to Base64:", err);
+              if (fallbackBase64) onUpload(fallbackBase64);
+            }
             setUploading(false);
             setProgress(0);
           }
         );
       };
 
-      // 2. Check if Cloudinary is configured
+      // Check if Cloudinary is configured
       if (cloudinaryConfig.cloudName && cloudinaryConfig.preset) {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`, true);
@@ -179,24 +207,22 @@ export default function ImageUpload({ onUpload, label, currentImage }: ImageUplo
         };
 
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', fileToUpload);
         formData.append('upload_preset', cloudinaryConfig.preset);
         xhr.send(formData);
       } else {
         triggerFirebaseUpload();
       }
-    } catch (storageErr) {
-      console.warn("Image compression or Storage failed, using standard Base64 fallback:", storageErr);
-      try {
-        const base64Url = await convertToBase64(origFile);
-        onUpload(base64Url);
-        setUploading(false);
-        setProgress(0);
-      } catch (readErr) {
-        console.error("Base64 conversion failed:", readErr);
-        setUploading(false);
-        alert("Image processing failed.");
-      }
+    };
+
+    try {
+      // 1. Client-side compress before doing anything to minimize transmission size and base64 memory impact
+      const base64Url = await compressImage(origFile);
+      const file = dataURLtoFile(base64Url, origFile.name);
+      performUpload(file);
+    } catch (compressErr) {
+      console.warn("Image pre-compression failed, uploading original raw file instead:", compressErr);
+      performUpload(origFile);
     }
   };
 
@@ -253,7 +279,7 @@ export default function ImageUpload({ onUpload, label, currentImage }: ImageUplo
                 <span className="text-[9px] font-bold uppercase tracking-widest">Upload Custom File</span>
               </>
             )}
-            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={uploading} />
+            <input type="file" className="sr-only" accept="image/*" onChange={handleFileChange} disabled={uploading} />
           </label>
 
           <button 

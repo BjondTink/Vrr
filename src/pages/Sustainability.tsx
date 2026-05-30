@@ -108,7 +108,7 @@ export default function Sustainability() {
             className="aspect-[4/5] rounded bg-white/50 p-3 shadow-sm border border-black/5"
           >
             <img 
-              src="https://images.unsplash.com/photo-1544022613-e87ca7fdad78?auto=format&fit=crop&q=80&w=1200" 
+              src={pageData?.pageImage || "https://images.unsplash.com/photo-1544022613-e87ca7fdad78?auto=format&fit=crop&q=80&w=1200"} 
               alt="Raw studio materials" 
               className="w-full h-full object-cover rounded-sm grayscale-[0.2]"
               referrerPolicy="no-referrer"

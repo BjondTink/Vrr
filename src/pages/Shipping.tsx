@@ -44,21 +44,38 @@ export default function Shipping() {
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         
         {/* Header */}
-        <div className="max-w-3xl mb-24">
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="uppercase tracking-[0.4em] text-[10px] mb-6 text-studio-accent font-semibold"
-          >
-            {pageData?.pageSubtitle || "Studio Logistical Framework"}
-          </motion.p>
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.9] mb-12 whitespace-pre-line">
-            {pageData?.pageTitle || "Shipping & \n Transit."}
-          </h1>
-          <p className="text-lg md:text-xl text-studio-black/70 leading-relaxed font-light whitespace-pre-line">
-            {pageData?.pageBody || "Every Vrr piece is hand-wrapped in tissue paper, loaded in custom organic cotton garment bags, and dispatched inside FSC-certified biodegradable containers directly from our atelier to minimize trace emissions."}
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center mb-24">
+          <div className={pageData?.pageImage ? "lg:col-span-7" : "lg:col-span-12 max-w-3xl"}>
+            <motion.p 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="uppercase tracking-[0.4em] text-[10px] mb-6 text-studio-accent font-semibold text-left"
+            >
+              {pageData?.pageSubtitle || "Studio Logistical Framework"}
+            </motion.p>
+            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.9] text-left mb-12 whitespace-pre-line">
+              {pageData?.pageTitle || "Shipping & \n Transit."}
+            </h1>
+            <p className="text-lg md:text-xl text-studio-black/70 leading-relaxed font-light text-left whitespace-pre-line">
+              {pageData?.pageBody || "Every Vrr piece is hand-wrapped in tissue paper, loaded in custom organic cotton garment bags, and dispatched inside FSC-certified biodegradable containers directly from our atelier to minimize trace emissions."}
+            </p>
+          </div>
+          {pageData?.pageImage && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="lg:col-span-5 aspect-[4/3] rounded overflow-hidden shadow-sm border border-black/5"
+            >
+              <img 
+                src={pageData.pageImage} 
+                alt="Transit / Shipping" 
+                className="w-full h-full object-cover grayscale-[0.2]"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+          )}
         </div>
 
         {/* Content Details */}

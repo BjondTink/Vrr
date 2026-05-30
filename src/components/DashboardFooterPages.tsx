@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, ArrowUp, ArrowDown, Save, X, RefreshCw, Layers } from "lucide-react";
 import { flexibleDb } from "../lib/flexibleDatabase";
+import ImageUpload from "./ImageUpload";
 
 export default function DashboardFooterPages() {
   const [pages, setPages] = useState<any[]>([]);
@@ -18,6 +19,7 @@ export default function DashboardFooterPages() {
   const [pageTitle, setPageTitle] = useState("");
   const [pageSubtitle, setPageSubtitle] = useState("");
   const [pageBody, setPageBody] = useState("");
+  const [pageImage, setPageImage] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -38,6 +40,7 @@ export default function DashboardFooterPages() {
     setPageTitle("");
     setPageSubtitle("");
     setPageBody("");
+    setPageImage("");
     setSelectedPage(null);
     setIsAdding(false);
   };
@@ -53,6 +56,7 @@ export default function DashboardFooterPages() {
     setPageTitle(page.pageTitle || "");
     setPageSubtitle(page.pageSubtitle || "");
     setPageBody(page.pageBody || "");
+    setPageImage(page.pageImage || "");
   };
 
   const startAdd = () => {
@@ -79,7 +83,8 @@ export default function DashboardFooterPages() {
         order: Number(order) || 1,
         pageTitle: pageTitle.trim(),
         pageSubtitle: pageSubtitle.trim(),
-        pageBody: pageBody.trim()
+        pageBody: pageBody.trim(),
+        pageImage: pageImage.trim()
       };
 
       await flexibleDb.saveDoc("footerPages", targetId, payload);
@@ -457,6 +462,14 @@ export default function DashboardFooterPages() {
                         placeholder="Type standard copy or rich paragraph text here. Supports layout spacing and live updates..."
                         rows={6}
                         className="w-full bg-black/5 p-3 text-xs rounded-lg focus:outline-studio-accent font-sans leading-relaxed"
+                      />
+                    </div>
+
+                    <div>
+                      <ImageUpload 
+                        label="Page Image (e.g. Hero, Atmosphere, or Feature Image)" 
+                        currentImage={pageImage} 
+                        onUpload={(url) => setPageImage(url)} 
                       />
                     </div>
                   </div>
