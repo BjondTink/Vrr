@@ -1,10 +1,12 @@
 import { motion, AnimatePresence } from "motion/react";
 import { X, Minus, Plus, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useLanguage } from "../context/LanguageContext";
 import { Link } from "react-router-dom";
 
 export default function CartDrawer() {
   const { cart, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, totalPrice } = useCart();
+  const { t } = useLanguage();
 
   return (
     <AnimatePresence>
@@ -28,7 +30,7 @@ export default function CartDrawer() {
             className="fixed right-0 top-0 h-full w-full max-w-md bg-studio-bg z-[110] shadow-2xl flex flex-col"
           >
             <div className="p-8 flex items-center justify-between border-b border-studio-black/5">
-              <h2 className="font-serif text-2xl uppercase tracking-tighter">Your Bag</h2>
+              <h2 className="font-serif text-2xl uppercase tracking-tighter">{t("cart.title", "Your Bag")}</h2>
               <button
                 onClick={() => setIsCartOpen(false)}
                 className="hover:opacity-50 transition-opacity"
@@ -40,12 +42,12 @@ export default function CartDrawer() {
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
-                  <p className="text-sm uppercase tracking-widest text-studio-black/40">Your bag is empty</p>
+                  <p className="text-sm uppercase tracking-widest text-studio-black/40">{t("cart.empty", "Your bag is empty")}</p>
                   <button
                     onClick={() => setIsCartOpen(false)}
                     className="border-b border-studio-black pb-1 text-xs uppercase tracking-widest"
                   >
-                    Start Shopping
+                    {t("cart.start_shopping", "Start Shopping")}
                   </button>
                 </div>
               ) : (
@@ -106,19 +108,19 @@ export default function CartDrawer() {
             {cart.length > 0 && (
               <div className="p-8 border-t border-studio-black/5 bg-white/50 space-y-6">
                 <div className="flex justify-between items-end">
-                  <span className="text-xs uppercase tracking-widest text-studio-black/40 font-medium">Subtotal</span>
-                  <span className="font-serif text-2xl">${totalPrice.toFixed(2)}</span>
+                  <span className="text-xs uppercase tracking-widest text-studio-black/40 font-medium">{t("nav.subtotal", "Subtotal")}</span>
+                  <span className="font-serif text-2xl">{totalPrice.toLocaleString("en-US")} Lek</span>
                 </div>
                 <Link 
                   to="/checkout"
                   onClick={() => setIsCartOpen(false)}
                   className="w-full bg-studio-black text-white py-4 text-xs uppercase tracking-[0.3em] font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-4 group"
                 >
-                  Checkout
+                  {t("cart.checkout", "Checkout")}
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <p className="text-[9px] text-center text-studio-black/40 uppercase tracking-widest">
-                  Shipping and taxes calculated at checkout
+                  {t("cart.free_shipping_notice", "Free shipping in Balkans & Albania on all orders")}
                 </p>
               </div>
             )}

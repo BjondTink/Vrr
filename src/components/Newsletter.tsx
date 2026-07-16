@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Instagram, ArrowUpRight } from "lucide-react";
 import { flexibleDb } from "../lib/flexibleDatabase";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Newsletter() {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<any>({
     newsletterInstagram: "https://www.instagram.com/v_dessign/"
   });
@@ -47,13 +49,13 @@ export default function Newsletter() {
            transition={{ duration: 1 }}
            className="space-y-10"
         >
-          <p className="uppercase tracking-[0.4em] text-[10px] text-white/50 font-medium">Join our world</p>
-          <h2 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.9]">
-            Stay close to <br /> the studio
+          <p className="uppercase tracking-[0.4em] text-[10px] text-white/50 font-medium">{t("newsletter.join_world", "Join our world")}</p>
+          <h2 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.95] whitespace-pre-line">
+            {t("newsletter.stay_close", "Stay close to \n the studio")}
           </h2>
           
           <p className="text-sm md:text-base text-white/60 max-w-sm mx-auto leading-relaxed uppercase tracking-wider">
-            Follow our design process, studio updates and exclusive drops on Instagram.
+            {t("newsletter.stay_close_desc", "Follow our design process, studio updates and exclusive drops on Instagram.")}
           </p>
 
           <div className="max-w-md mx-auto pt-4">

@@ -21,6 +21,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Login from "./pages/Login";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
+import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import CartDrawer from "./components/CartDrawer";
 import AdminDashboard from "./pages/AdminDashboard";
 import Sustainability from "./pages/Sustainability";
@@ -42,6 +43,7 @@ function ScrollToTop() {
 }
 
 function HomePage() {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState({
     philosophyQuote: "Art is the soul of our studio, fashion is the language we use to speak to the world.",
     philosophyTag: "Our Philosophy",
@@ -66,16 +68,18 @@ function HomePage() {
         <CollectionGrid />
         <section className="py-40 px-6 text-center max-w-4xl mx-auto">
           <h2 className="font-serif italic text-4xl md:text-5xl lg:text-6xl text-studio-black/80 leading-tight">
-            "{settings.philosophyQuote}"
+            "{settings.philosophyQuote === "Art is the soul of our studio, fashion is the language we use to speak to the world." ? t("home.philosophy_quote") : settings.philosophyQuote}"
           </h2>
-          <p className="mt-12 uppercase tracking-[0.4em] text-[10px] text-studio-accent font-semibold">{settings.philosophyTag}</p>
+          <p className="mt-12 uppercase tracking-[0.4em] text-[10px] text-studio-accent font-semibold">
+            {settings.philosophyTag === "Our Philosophy" ? t("home.philosophy_tag") : settings.philosophyTag}
+          </p>
         </section>
         <ShopTheLook />
         <div className="py-12 border-y border-studio-black/5 overflow-hidden bg-white">
           <div className="whitespace-nowrap flex animate-marquee">
             {[...Array(6)].map((_, i) => (
               <span key={i} className="font-serif text-2xl uppercase tracking-tighter mx-12 text-studio-black/20">
-                {settings.marqueeText}
+                {settings.marqueeText === "Vrr — Collection No.04 — Dropping Soon" ? t("home.marquee") : settings.marqueeText}
               </span>
             ))}
           </div>
@@ -170,10 +174,12 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
-        <CartProvider>
-          <ScrollToTop />
-          <AppContent />
-        </CartProvider>
+        <LanguageProvider>
+          <CartProvider>
+            <ScrollToTop />
+            <AppContent />
+          </CartProvider>
+        </LanguageProvider>
       </AuthProvider>
     </Router>
   );

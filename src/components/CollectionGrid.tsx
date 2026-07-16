@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 
 import { useState, useEffect } from "react";
 import { flexibleDb } from "../lib/flexibleDatabase";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function CollectionGrid() {
+  const { t } = useLanguage();
   const [collections, setCollections] = useState<any[]>([]);
   const [settings, setSettings] = useState({
     collectionTitle: "The Seasonal Edit",
@@ -81,7 +83,7 @@ export default function CollectionGrid() {
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500" />
                 
                 <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end text-white translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                  <span className="text-[10px] uppercase tracking-widest border-b border-white pb-1">Show Collection</span>
+                  <span className="text-[10px] uppercase tracking-widest border-b border-white pb-1">{t("collection.show_collection", "Show Collection")}</span>
                   <span className="font-serif text-2xl italic">{index + 1}</span>
                 </div>
               </div>
@@ -102,7 +104,7 @@ export default function CollectionGrid() {
           to="/shop?collection=all_collections"
           className="inline-block border-b border-studio-black pb-2 text-xs uppercase tracking-[0.2em] font-bold hover:text-studio-accent hover:border-studio-accent transition-all"
         >
-          View All Collections
+          {t("collection.view_all", "View All Collections")}
         </Link>
       </div>
     </section>

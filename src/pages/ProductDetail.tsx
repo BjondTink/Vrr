@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { useCart } from "../context/CartContext";
 import { ArrowLeft, Minus, Plus, ShoppingBag, ShieldCheck, Truck, RefreshCw, Image as ImageIcon } from "lucide-react";
 import { flexibleDb } from "../lib/flexibleDatabase";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const { t } = useLanguage();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
@@ -36,7 +38,7 @@ export default function ProductDetail() {
       <div className="h-screen flex items-center justify-center bg-studio-bg">
         <div className="animate-pulse flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-2 border-studio-black/10 border-t-studio-black rounded-full animate-spin" />
-          <p className="text-[10px] uppercase tracking-[0.3em] font-medium opacity-40">Loading Piece</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] font-medium opacity-40">{t("product.loading", "Loading Piece")}</p>
         </div>
       </div>
     );
@@ -45,9 +47,9 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-studio-bg px-6">
-        <h1 className="font-serif text-4xl mb-8">Piece not found.</h1>
+        <h1 className="font-serif text-4xl mb-8">{t("product.not_found", "Piece not found.")}</h1>
         <Link to="/shop" className="border-b border-studio-black pb-1 text-xs uppercase tracking-widest font-medium">
-          Return to Shop
+          {t("product.return_to_shop", "Return to Shop")}
         </Link>
       </div>
     );
@@ -58,7 +60,7 @@ export default function ProductDetail() {
 
   const handleAddToBag = () => {
     if (sizes.length > 0 && !selectedSize) {
-      alert("Please select a size");
+      alert(t("product.select_size_alert", "Please select a size"));
       return;
     }
     addToCart({
@@ -72,7 +74,7 @@ export default function ProductDetail() {
     <div className="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
       <Link to="/shop" className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest text-studio-black/40 hover:text-studio-black mb-12 transition-colors">
         <ArrowLeft size={14} />
-        Back to Shop
+        {t("product.back_to_shop", "Back to Shop")}
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
@@ -103,7 +105,7 @@ export default function ProductDetail() {
             <div className="grid grid-cols-4 gap-4">
               {gallery.map((img: string, idx: number) => (
                 <button 
-                  key={idx} 
+                   key={idx} 
                   onClick={() => setActiveImage(idx)}
                   className={`aspect-[3/4] bg-studio-black/5 overflow-hidden transition-all border-2 ${activeImage === idx ? 'border-studio-black' : 'border-transparent opacity-60 hover:opacity-100'}`}
                 >
@@ -132,15 +134,15 @@ export default function ProductDetail() {
             {/* Description */}
             <div className="space-y-4">
               <p className="text-sm text-studio-black/70 leading-relaxed max-w-md uppercase tracking-wider font-light">
-                {product.description || "A masterfully crafted piece designed for the modern wardrobe. Effortless essentialism in every stitch."}
+                {product.description || t("shop.default_description", "A masterfully crafted piece designed for the modern wardrobe.")}
               </p>
             </div>
 
             {/* Size Selection */}
             <div>
               <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] uppercase tracking-widest font-bold">Select Size</span>
-                <button className="text-[9px] uppercase tracking-widest text-studio-black/40 border-b border-transparent hover:border-studio-black/40 transition-all">Size Guide</button>
+                <span className="text-[10px] uppercase tracking-widest font-bold">{t("product.select_size", "Select Size")}</span>
+                <button className="text-[9px] uppercase tracking-widest text-studio-black/40 border-b border-transparent hover:border-studio-black/40 transition-all">{t("product.size_guide", "Size Guide")}</button>
               </div>
               <div className="flex flex-wrap gap-3">
                 {sizes.map((size: string) => (
@@ -168,7 +170,7 @@ export default function ProductDetail() {
                   className="flex-1 h-14 bg-studio-black text-white text-[10px] uppercase tracking-[0.4em] font-bold hover:opacity-90 transition-all flex items-center justify-center gap-4 group"
                 >
                   <ShoppingBag size={18} />
-                  Add to Bag
+                  {t("product.add_to_bag", "Add to Bag")}
                 </button>
               </div>
             </div>
@@ -178,15 +180,15 @@ export default function ProductDetail() {
               <div className="flex items-start gap-3">
                 <Truck size={18} className="text-studio-accent" />
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1">Shipping</p>
-                  <p className="text-[9px] text-studio-black/40 uppercase tracking-widest leading-relaxed">Complimentary global delivery on orders above $500.</p>
+                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1">{t("product.shipping", "Shipping")}</p>
+                  <p className="text-[9px] text-studio-black/40 uppercase tracking-widest leading-relaxed">{t("product.shipping_desc", "Complimentary global delivery on orders above $500.")}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <RefreshCw size={18} className="text-studio-accent" />
                 <div>
-                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1">Returns</p>
-                  <p className="text-[9px] text-studio-black/40 uppercase tracking-widest leading-relaxed">14-day effortless returns policy.</p>
+                  <p className="text-[9px] uppercase tracking-widest font-bold mb-1">{t("product.returns", "Returns")}</p>
+                  <p className="text-[9px] text-studio-black/40 uppercase tracking-widest leading-relaxed">{t("product.returns_desc", "14-day effortless returns policy.")}</p>
                 </div>
               </div>
             </div>
@@ -195,25 +197,25 @@ export default function ProductDetail() {
             <div className="pt-8 space-y-4">
               <details className="group border-t border-black/5 pt-4">
                 <summary className="flex justify-between items-center cursor-pointer list-none">
-                  <span className="text-[10px] uppercase tracking-widest font-bold">Materials & Origin</span>
+                  <span className="text-[10px] uppercase tracking-widest font-bold">{t("product.materials_origin", "Materials & Origin")}</span>
                   <Plus size={14} className="group-open:rotate-45 transition-transform" />
                 </summary>
                 <div className="pt-4 text-[10px] uppercase tracking-widest text-studio-black/50 leading-relaxed">
-                  {product.details || "100% fine cotton. Consciously woven in our Italian atelier. Each piece is finished by hand to ensure longevity and unparalleled quality."}
+                  {product.details || t("product.materials_desc", "100% fine cotton. Consciously woven in our Italian atelier. Each piece is finished by hand to ensure longevity and unparalleled quality.")}
                 </div>
               </details>
               <details className="group border-t border-black/5 pt-4">
                 <summary className="flex justify-between items-center cursor-pointer list-none">
-                  <span className="text-[10px] uppercase tracking-widest font-bold">Care Instruction</span>
+                  <span className="text-[10px] uppercase tracking-widest font-bold">{t("product.care_instruction", "Care Instruction")}</span>
                   <Plus size={14} className="group-open:rotate-45 transition-transform" />
                 </summary>
                 <div className="pt-4 text-[10px] uppercase tracking-widest text-studio-black/50 leading-relaxed">
-                  Hand wash cold. Dry flat. Iron low heat. Handle with the same care we used in its creation.
+                  {t("product.care_desc", "Hand wash cold. Dry flat. Iron low heat. Handle with the same care we used in its creation.")}
                 </div>
               </details>
               <div className="pt-8 flex items-center justify-center gap-4 grayscale opacity-20">
                  <ShieldCheck size={16} />
-                 <span className="text-[8px] uppercase tracking-[0.5em]">Authentic Vrr Studio Piece</span>
+                 <span className="text-[8px] uppercase tracking-[0.5em]">{t("product.authentic", "Authentic Vrr Studio Piece")}</span>
                  <ShieldCheck size={16} />
               </div>
             </div>

@@ -3,11 +3,13 @@ import { Search, ShoppingBag, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import SearchOverlay from "./SearchOverlay";
 import { Link } from "react-router-dom";
 import { flexibleDb } from "../lib/flexibleDatabase";
 
 export default function Navbar() {
+  const { language, setLanguage, t } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -33,10 +35,10 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
-    { name: "Shop", href: "/shop" },
-    { name: "Collections", href: "/collections" },
-    { name: "About", href: "/about" },
-    ...(isAdmin ? [{ name: "Admin", href: "/admin" }] : []),
+    { name: t("nav.shop", "Shop"), href: "/shop" },
+    { name: t("nav.collections", "Collections"), href: "/collections" },
+    { name: t("nav.about", "About"), href: "/about" },
+    ...(isAdmin ? [{ name: t("nav.admin", "Admin"), href: "/admin" }] : []),
   ];
 
   return (
@@ -138,7 +140,7 @@ export default function Navbar() {
             <div className="flex flex-col items-center space-y-6">
               {navLinks.map((link) => (
                 <Link
-                  key={link.name}
+                   key={link.href}
                   to={link.href}
                   className="font-serif text-3xl uppercase tracking-tighter hover:italic transition-all"
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -146,6 +148,38 @@ export default function Navbar() {
                   {link.name}
                 </Link>
               ))}
+            </div>
+
+            {/* Language Toggle in Mobile Menu */}
+            <div className="mt-8 pt-8 border-t border-studio-black/10 flex flex-col items-center gap-3 w-40">
+              <span className="text-[9px] uppercase tracking-[0.2em] text-studio-black/40">Gjuha / Language</span>
+              <div className="relative w-full h-8 bg-studio-black/5 rounded-full p-0.5 flex items-center cursor-pointer select-none">
+                <motion.div 
+                  className="absolute top-0.5 bottom-0.5 bg-white rounded-full shadow-sm"
+                  initial={false}
+                  animate={{
+                    left: language === "en" ? "2px" : "80px",
+                    right: language === "en" ? "80px" : "2px"
+                  }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                />
+                <button 
+                  onClick={() => setLanguage("en")}
+                  className={`z-10 w-1/2 text-center text-[9px] uppercase tracking-widest font-bold transition-colors ${
+                    language === "en" ? "text-studio-black" : "text-studio-black/40"
+                  }`}
+                >
+                  EN
+                </button>
+                <button 
+                  onClick={() => setLanguage("sq")}
+                  className={`z-10 w-1/2 text-center text-[9px] uppercase tracking-widest font-bold transition-colors ${
+                    language === "sq" ? "text-studio-black" : "text-studio-black/40"
+                  }`}
+                >
+                  ALB
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

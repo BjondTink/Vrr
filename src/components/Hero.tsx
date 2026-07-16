@@ -2,8 +2,10 @@ import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { flexibleDb } from "../lib/flexibleDatabase";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Hero() {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState({
     heroTitle: "First Signs of Spring",
     heroSubtitle: "Discover the Collection",
@@ -64,13 +66,13 @@ export default function Hero() {
             to="/shop"
             className="px-8 py-3 bg-white text-studio-black text-[10px] uppercase tracking-widest hover:bg-studio-black hover:text-white transition-all w-full md:w-auto text-center"
           >
-            Shop the Look
+            {t("home.shop_look", "Shop the Look")}
           </Link>
           <Link
             to="/shop"
             className="px-8 py-3 backdrop-blur-md border border-white/30 text-white text-[10px] uppercase tracking-widest hover:bg-white hover:text-studio-black transition-all w-full md:w-auto text-center"
           >
-            Explore Primavera
+            {t("home.explore_primavera", "Explore Primavera")}
           </Link>
         </motion.div>
       </div>
@@ -82,7 +84,7 @@ export default function Hero() {
         transition={{ delay: 1.5, duration: 1 }}
         className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
       >
-        <span className="text-[9px] uppercase tracking-widest text-white/60">Scroll</span>
+        <span className="text-[9px] uppercase tracking-widest text-white/60">{t("home.scroll", "Scroll")}</span>
         <div className="w-[1px] h-12 bg-white/30 relative">
           <motion.div
             animate={{

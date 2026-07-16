@@ -6,9 +6,11 @@ import { LayoutGrid, List, Image as ImageIcon } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import SEO from "../components/SEO";
 import { flexibleDb } from "../lib/flexibleDatabase";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Shop() {
   const { addToCart } = useCart();
+  const { t } = useLanguage();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [filter, setFilter] = useState("All");
   const [dbProducts, setDbProducts] = useState<any[]>([]);
@@ -63,9 +65,9 @@ export default function Shop() {
     <div className="pt-32 pb-36 px-6 md:px-12 max-w-7xl mx-auto">
       <SEO title="Shop Collections" description="Explore the full collection of Vrr Studio pieces." />
       <header className="mb-16">
-        <p className="uppercase tracking-[0.3em] text-[10px] mb-4 text-studio-accent font-medium text-center md:text-left">The Studio Store</p>
+        <p className="uppercase tracking-[0.3em] text-[10px] mb-4 text-studio-accent font-medium text-center md:text-left">{t("shop.the_studio_store", "The Studio Store")}</p>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-           <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-none text-center md:text-left">Shop All Pieces</h1>
+           <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-none text-center md:text-left">{t("shop.shop_all_pieces", "Shop All Pieces")}</h1>
            <div className="flex items-center justify-center md:justify-end pb-2 border-b border-studio-black/5">
               <div className="flex items-center space-x-6">
                 <button 
@@ -90,7 +92,7 @@ export default function Shop() {
         <aside className="w-full lg:w-48 flex-shrink-0">
           <div className="sticky top-32 space-y-12">
             <div>
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold mb-6 text-studio-accent">Categories</h3>
+              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold mb-6 text-studio-accent">{t("shop.categories", "Categories")}</h3>
               <ul className="space-y-4">
                 {categories.map((cat) => (
                   <li 
@@ -98,7 +100,7 @@ export default function Shop() {
                     onClick={() => setFilter(cat)}
                     className={`text-xs uppercase tracking-widest cursor-pointer transition-all hover:translate-x-1 ${filter === cat ? "font-bold text-studio-black" : "text-studio-black/40"}`}
                   >
-                    {cat}
+                    {cat === "All" ? t("footer.all_products", "All") : cat}
                   </li>
                 ))}
               </ul>
@@ -106,7 +108,7 @@ export default function Shop() {
 
             {dbCollections.length > 0 && (
               <div>
-                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold mb-6 text-studio-accent">Collections</h3>
+                <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold mb-6 text-studio-accent">{t("shop.collections", "Collections")}</h3>
                 <ul className="space-y-4">
                   <li 
                     onClick={() => {
@@ -116,7 +118,7 @@ export default function Shop() {
                     }}
                     className={`text-xs uppercase tracking-widest cursor-pointer transition-all hover:translate-x-1 ${!collectionParam ? "font-bold text-studio-black" : "text-studio-black/40"}`}
                   >
-                    All Collections
+                    {t("shop.all_collections", "All Collections")}
                   </li>
                   {dbCollections.map((col) => (
                     <li 
@@ -161,7 +163,7 @@ export default function Shop() {
                   )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                   <div className="absolute bottom-6 left-6 right-6 py-3 bg-studio-bg text-studio-black text-[10px] uppercase tracking-[0.2em] font-medium translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 shadow-xl text-center">
-                    Detailed View
+                    {t("shop.detailed_view", "Detailed View")}
                   </div>
                 </Link>
 
@@ -173,7 +175,7 @@ export default function Shop() {
                   <p className="font-medium text-studio-black/60">{product.price}</p>
                   {view === "list" && (
                     <p className="mt-4 text-xs uppercase tracking-widest text-studio-black/40 leading-relaxed max-w-md">
-                      {product.description || "A masterfully crafted piece designed for the modern wardrobe."}
+                      {product.description || t("shop.default_description", "A masterfully crafted piece designed for the modern wardrobe.")}
                     </p>
                   )}
                 </div>
@@ -190,7 +192,7 @@ export default function Shop() {
                 disabled={currentPage === 1}
                 className={`text-[10px] uppercase tracking-[0.2em] font-bold transition-all ${currentPage === 1 ? "opacity-20 cursor-not-allowed" : "hover:text-studio-accent"}`}
               >
-                Prev
+                {t("shop.prev", "Prev")}
               </button>
               
               <div className="flex items-center gap-2">
@@ -219,7 +221,7 @@ export default function Shop() {
                 disabled={currentPage === totalPages}
                 className={`text-[10px] uppercase tracking-[0.2em] font-bold transition-all ${currentPage === totalPages ? "opacity-20 cursor-not-allowed" : "hover:text-studio-accent"}`}
               >
-                Next
+                {t("shop.next", "Next")}
               </button>
             </div>
           )}

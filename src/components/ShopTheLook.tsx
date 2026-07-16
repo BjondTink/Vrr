@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { flexibleDb } from "../lib/flexibleDatabase";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ShopTheLook() {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<any>({
     lookbookMainImage: "https://images.unsplash.com/photo-1509631179647-017733150396?auto=format&fit=crop&q=80&w=2576",
     lookbookTitle: "Every Look Tells a Story",
@@ -122,7 +124,7 @@ export default function ShopTheLook() {
                   <div className="flex justify-between items-end">
                     <div>
                       <p className="font-serif text-sm">{i === 1 ? looks[0].name : looks[1].name}</p>
-                      <p className="text-[9px] uppercase tracking-widest text-studio-accent mt-1">Shop Now</p>
+                      <p className="text-[9px] uppercase tracking-widest text-studio-accent mt-1">{t("home.shop_look", "Shop Now")}</p>
                     </div>
                   </div>
                 </div>

@@ -37,9 +37,9 @@ export default function DashboardFooter() {
   const [localSettings, setLocalSettings] = useState<any>({
     footerLogo: "Vrr",
     footerDescription: "A creative space dedicated to the intersection of art, fashion, and human connection. Designed in Paris, inspired by the world.",
-    footerInstagram: "https://instagram.com",
-    footerFacebook: "https://facebook.com",
-    footerTwitter: "https://twitter.com",
+    footerInstagram: "https://www.instagram.com/v_dessign/",
+    footerTiktok: "https://tiktok.com",
+    footerWhatsapp: "https://wa.me/355688859965",
     footerColTitle: "Collection",
     footerColLink1Text: "Shop All",
     footerColLink1Url: "/shop",
@@ -154,8 +154,8 @@ export default function DashboardFooter() {
           </h3>
           <div className="space-y-4 font-sans">
             <SettingInput label="Instagram Profile Link" value={localSettings.footerInstagram} onChange={(v) => updateSetting("footerInstagram", v)} />
-            <SettingInput label="Facebook Page Link" value={localSettings.footerFacebook} onChange={(v) => updateSetting("footerFacebook", v)} />
-            <SettingInput label="Twitter / X Link" value={localSettings.footerTwitter} onChange={(v) => updateSetting("footerTwitter", v)} />
+            <SettingInput label="TikTok Profile Link" value={localSettings.footerTiktok} onChange={(v) => updateSetting("footerTiktok", v)} />
+            <SettingInput label="WhatsApp / Chat Link" value={localSettings.footerWhatsapp} onChange={(v) => updateSetting("footerWhatsapp", v)} />
           </div>
         </div>
 

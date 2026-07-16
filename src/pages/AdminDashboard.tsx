@@ -20,7 +20,9 @@ import {
   FolderOpen,
   Layout,
   Globe,
-  BookOpen
+  BookOpen,
+  Info,
+  Truck
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -40,8 +42,22 @@ import { handleFirestoreError, OperationType } from "../lib/firestoreErrorHandle
 import DashboardFooter from "../components/DashboardFooter";
 import DashboardSiteInfo from "../components/DashboardSiteInfo";
 import DashboardFooterPages from "../components/DashboardFooterPages";
+import DashboardAbout from "../components/DashboardAbout";
+import DashboardShipping from "../components/DashboardShipping";
 
-type Tab = "overview" | "products" | "categories" | "collections" | "journal" | "orders" | "home" | "footer" | "site_info" | "footer_pages";
+export function formatToLek(value: string | number): string {
+  if (value === undefined || value === null) return "";
+  const str = String(value).trim();
+  if (!str) return "";
+  // Strip any existing currency symbols and non-digit characters (keep decimal if any)
+  const cleanStr = str.replace(/[^\d.]/g, "");
+  if (!cleanStr) return str;
+  const parsed = parseFloat(cleanStr);
+  if (isNaN(parsed)) return str;
+  return `${parsed.toLocaleString("en-US")} Lek`;
+}
+
+type Tab = "overview" | "products" | "categories" | "collections" | "journal" | "orders" | "home" | "footer" | "site_info" | "footer_pages" | "about" | "shipping";
 
 export default function AdminDashboard() {
   const { user, isAdmin, loading, logout } = useAuth();
@@ -115,6 +131,8 @@ export default function AdminDashboard() {
           <SidebarLink icon={<FolderOpen size={20}/>} label="Collections" active={activeTab === "collections"} onClick={() => { setActiveTab("collections"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
           <div className="pt-8 mb-2 space-y-2">
             <SidebarLink icon={<Settings size={20}/>} label="Home Page" active={activeTab === "home"} onClick={() => { setActiveTab("home"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
+            <SidebarLink icon={<Info size={20}/>} label="About Page" active={activeTab === "about"} onClick={() => { setActiveTab("about"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
+            <SidebarLink icon={<Truck size={20}/>} label="Shipping Page" active={activeTab === "shipping"} onClick={() => { setActiveTab("shipping"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
             <SidebarLink icon={<Layout size={20}/>} label="Footer" active={activeTab === "footer"} onClick={() => { setActiveTab("footer"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
             <SidebarLink icon={<BookOpen size={20}/>} label="Footer pages" active={activeTab === "footer_pages"} onClick={() => { setActiveTab("footer_pages"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
             <SidebarLink icon={<Globe size={20}/>} label="Site Info" active={activeTab === "site_info"} onClick={() => { setActiveTab("site_info"); if(window.innerWidth < 1024) setIsSidebarOpen(false); }} collapsed={!isSidebarOpen && window.innerWidth >= 1024} />
@@ -186,6 +204,8 @@ export default function AdminDashboard() {
             {activeTab === "footer" && <DashboardFooter />}
             {activeTab === "footer_pages" && <DashboardFooterPages />}
             {activeTab === "site_info" && <DashboardSiteInfo />}
+            {activeTab === "about" && <DashboardAbout />}
+            {activeTab === "shipping" && <DashboardShipping />}
           </div>
         </div>
       </main>
@@ -528,8 +548,13 @@ function ProductModal({ product, onClose }: { product?: any, onClose: () => void
             // Auto-generate slug if empty
             const slug = formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
             
+            const savedPrice = formatToLek(formData.price);
+            const savedDiscountPrice = formData.discountPrice ? formatToLek(formData.discountPrice) : "";
+
             await flexibleDb.saveDoc("products", id, {
                 ...formData,
+                price: savedPrice,
+                discountPrice: savedDiscountPrice,
                 slug,
                 updatedAt: new Date().toISOString()
             });
@@ -659,11 +684,24 @@ function ProductModal({ product, onClose }: { product?: any, onClose: () => void
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] uppercase tracking-widest font-bold">Price</label>
-                                    <input required value={formData.price || ""} onChange={e => setFormData({...formData, price: e.target.value})} placeholder="$" className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs font-mono rounded-lg" />
+                                    <input 
+                                        required 
+                                        value={formData.price || ""} 
+                                        onChange={e => setFormData({...formData, price: e.target.value})} 
+                                        onBlur={e => setFormData({...formData, price: formatToLek(e.target.value)})}
+                                        placeholder="Lek" 
+                                        className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs font-mono rounded-lg" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] uppercase tracking-widest font-bold">Discount Price</label>
-                                    <input value={formData.discountPrice || ""} onChange={e => setFormData({...formData, discountPrice: e.target.value})} placeholder="$" className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs font-mono rounded-lg" />
+                                    <input 
+                                        value={formData.discountPrice || ""} 
+                                        onChange={e => setFormData({...formData, discountPrice: e.target.value})} 
+                                        onBlur={e => setFormData({...formData, discountPrice: e.target.value ? formatToLek(e.target.value) : ""})}
+                                        placeholder="Lek" 
+                                        className="w-full bg-[#f9f9f9] border border-black/5 p-4 text-xs font-mono rounded-lg" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] uppercase tracking-widest font-bold">Stock</label>
