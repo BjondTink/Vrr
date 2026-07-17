@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const adminDocRef = doc(db, "admins", firebaseUser.uid);
           const adminDoc = await getDoc(adminDocRef);
-          const adminEmails = ["reniqahi2015@gmail.com", "admin@vrr.com", "admin@valentinavrr.com"];
+          const adminEmails = ["reniqahi2015@gmail.com", "admin@vrr.com", "admin@valentinavrr.com", "valentina@valentinavrr.com"];
           const isHardcodedAdmin = firebaseUser.email && adminEmails.includes(firebaseUser.email.toLowerCase());
           
           if (isHardcodedAdmin && !adminDoc.exists()) {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (err) {
           console.error("Admin check failed:", err);
-          const adminEmails = ["reniqahi2015@gmail.com", "admin@vrr.com", "admin@valentinavrr.com"];
+          const adminEmails = ["reniqahi2015@gmail.com", "admin@vrr.com", "admin@valentinavrr.com", "valentina@valentinavrr.com"];
           const isHardcodedAdmin = firebaseUser.email && adminEmails.includes(firebaseUser.email.toLowerCase());
           setIsAdmin(!!isHardcodedAdmin);
         }
@@ -79,11 +79,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithCredentials = async (username: string, password: string) => {
-    // Specifically requested credentials
-    if (username === "admin" && password === "valentinavrr02") {
+    let loginEmail = "";
+    let displayName = "";
+
+    if (username === "reni" && password === "reni") {
+      loginEmail = "reniqahi2015@gmail.com";
+      displayName = "reni";
+    } else if (username === "Valentina" && password === "Noeli555") {
+      loginEmail = "valentina@valentinavrr.com";
+      displayName = "Valentina";
+    } else if (username === "admin" && password === "valentinavrr02") {
+      loginEmail = "admin@valentinavrr.com";
+      displayName = "Admin Studio";
+    }
+
+    if (loginEmail) {
       try {
         // Attempt to login with REAL Firebase Auth to enable live database writes
-        const loginEmail = "admin@valentinavrr.com"; 
         let userCredential;
         try {
           userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
@@ -110,8 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.warn("Firebase Auth failed for admin credentials, falling back to local simulation.");
         const customUser = {
-          displayName: "Admin Studio",
-          email: "admin@valentinavrr.com",
+          displayName,
+          email: loginEmail,
           uid: "vrr_admin_id"
         };
         setUser(customUser);
